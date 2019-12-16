@@ -3,7 +3,7 @@ import Head from 'next/head';
 import Agent from '../components/agent';
 import { color } from '../components/constants';
 
-let fs = 16;
+let fs = 14;
 let lh = 1.5;
 let ch = 9.599990844726562;
 let rlh = fs * lh;
@@ -15,6 +15,8 @@ let interval = frames / 2;
 
 let names = ['SVM', 'Deep', 'GAN', 'Sequencer'];
 
+let id = 0;
+
 export default function Index() {
   let [counter, setCounter] = useState(0);
   let [flow, setFlow] = useState([]);
@@ -25,6 +27,7 @@ export default function Index() {
       setFlow(function(prev) {
         let anomaly = Math.random() > 0.8;
         prev.unshift({
+          id: id,
           gen: counter,
           anomaly: anomaly,
           detected: [
@@ -34,6 +37,7 @@ export default function Index() {
             anomaly ? Math.random() > 0.1 : Math.random() > 0.96,
           ],
         });
+        id++;
         return prev;
       });
     }
@@ -62,33 +66,13 @@ export default function Index() {
           <div
             style={{
               position: 'relative',
-              background: o.anomaly ? color.red : color.bg2,
+              // background: o.anomaly ? color.red : color.bg2,
               paddingLeft: '1ch',
               paddingRight: '1ch',
             }}
           >
-            {counter - o.gen}
+            {o.id}
           </div>
-        ))}
-      </div>
-
-      <div
-        style={{
-          height: `calc(100vh - ${top_lines * rlh}px)`,
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gridTemplateRows: '50% 50%',
-        }}
-      >
-        {[...Array(4)].map((n, i) => (
-          <Agent
-            cell={cell}
-            frames={frames}
-            flow={flow}
-            counter={counter}
-            agent_key={i}
-            name={names[i]}
-          />
         ))}
       </div>
 
@@ -118,8 +102,8 @@ export default function Index() {
           font-family: 'custom', sans-serif;
           font-size: ${fs}px;
           line-height: ${lh};
-          background: ${color.bg4};
-          color: ${color.fg};
+          background: #fff;
+          color: #000;
         }
         body {
           margin: 0;
