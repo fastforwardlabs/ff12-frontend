@@ -1,0 +1,33 @@
+let fg = '#ebdbb2';
+let bg = '#282828';
+
+export let color = {
+  red: '#cc241d',
+  red_h: '#fb4934',
+  green: '#9871a',
+  green_h: '#b8bb26',
+  yellow: '#d79921',
+  yellow_h: '#fabd2f',
+  blue: '#458588',
+  blue_h: '#83a598',
+  purple: '#b16286',
+  purple_h: '#d3869b',
+  aqua: '#689d6a',
+  aqua_h: '#83c07c',
+  orange: '#d65d0e',
+  orange_h: '#fe8019',
+  bg: bg,
+  bg0: '#1d2021',
+  bg1: bg,
+  bg2: '#504945',
+  bg3: '#665c54',
+  bg4: '#7c6f64',
+  fg: fg,
+  fg0: '#fbf1c7',
+  fg1: fg,
+  fg2: '#d5c4a1',
+  fg3: '#bdae93',
+  fg4: '#a89984',
+  gray: '#a89984',
+  gray_h: '#928374',
+};
