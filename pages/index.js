@@ -8,6 +8,7 @@ import React, {
 import Head from 'next/head'
 import Agent from '../components/agent'
 import { color } from '../components/constants'
+import * as _ from 'lodash'
 
 let fs = 13
 let lh = 1.5
@@ -19,7 +20,8 @@ let top_lines = 70
 let frames = 6
 let interval = frames / 2
 
-let names = ['SVM', 'Deep', 'GAN', 'Sequencer']
+let names = ['SVM', 'Variational Autoencoder', 'Sequence2Sequence', 'GAN']
+let short_names = ['SVM', 'VAE', 'Seq', 'GAN']
 
 let id = 0
 let sx = 0
@@ -31,12 +33,19 @@ let size = 4
 
 let panels = [...Array(4)].map(n => [0, 0, 0, 0])
 
+let sort_options = ['accuracy', 'precision', 'recall']
+
 export default function Index() {
   let [counter, setCounter] = useState(-1)
   let [flow, setFlow] = useState([])
   let handler_ref = useRef(null)
   let canvas_ref = useRef(null)
   let readouts_ref = useRef([...Array(4)].map(() => createRef()))
+  let titles_ref = useRef([...Array(4)].map(() => createRef()))
+  let [sort, setSort] = useState(sort_options[0])
+  let pcpr_ref = useRef(null)
+  let panels_ref = useRef(null)
+  let rankings_ref = useRef(null)
 
   useEffect(() => {
     let c = canvas_ref.current
@@ -65,75 +74,15 @@ export default function Index() {
           ctx.fillStyle = 'black'
         }
 
-        let x_gaps = 4 * 2 + 4
-        let panel_columns = Math.floor((columns - (4 * 2 + 4)) / 2)
-        // border of 1
-        let panel_rows = Math.ceil(10000 / (panel_columns - 2)) + 2
+        let [pc, pr] = pcpr_ref.current
 
-        let pc = panel_columns - 2
-        let pr = panel_rows - 2
-
-        let offset = columns * 4
-        if (id < offset) {
-          let x = id % columns
-          let y = Math.floor(id / columns)
-          // ctx.fillRect(x * size, y * size + fs * lh, size, size);
-        } else {
-          // let id_adjusted = id - offset;
-          // let col = id_adjusted % x_gaps;
-          // let row = Math.floor(id_adjusted / x_gaps);
-          // let x;
-          // if (col < 4) {
-          //   x = col * size;
-          // } else if (col < 8) {
-          //   x = col * size + panel_columns * size;
-          // } else {
-          //   x = col * size + panel_columns * size * 2;
-          // }
-          // let y = row + 4;
-          let x = id % columns
-          let y = Math.floor(id / columns)
-          if (
-            x < 4 ||
-            (x > 4 + panel_columns - 1 && x < 4 + panel_columns + 4) ||
-            x > 4 * 2 + panel_columns * 2 - 1
-          ) {
-            // ctx.fillRect(x * size, y * size + fs * lh, size, size);
-          }
-        }
-
-        let p1 = [
-          4 * size,
-          4 * size + fs * lh,
-          panel_columns * size,
-          panel_rows * size + rlh * 2,
-        ]
-        let p2 = [
-          4 * size + panel_columns * size + 4 * size,
-          4 * size + fs * lh,
-          panel_columns * size,
-          panel_rows * size + rlh * 2,
-        ]
-        let p3 = [
-          4 * size,
-          4 * size + fs * lh + panel_rows * size + 4 * size + rlh * 4,
-          panel_columns * size,
-          panel_rows * size + rlh * 2,
-        ]
-        let p4 = [
-          4 * size + panel_columns * size + 4 * size,
-          4 * size + fs * lh + panel_rows * size + 4 * size + rlh * 4,
-          panel_columns * size,
-          panel_rows * size + rlh * 2,
-        ]
-
+        let [p1, p2, p3, p4] = panels_ref.current
         let tp = [p1, p2, p3, p4]
-        // if (datum.anomaly) {
-        //   ctx.fillStyle = 'red';
-        // } else {
-        //   ctx.fillStyle = 'black';
-        // }
-        //
+
+        for (let p of tp) {
+          // ctx.fillStyle = 'pink'
+          // ctx.fillRect(...p)
+        }
 
         let panel_data = [p1, p2, p3, p4]
         for (let i = 0; i < panel_data.length; i++) {
@@ -141,8 +90,8 @@ export default function Index() {
           let p1x, p1y
           if (datum.detected[i]) {
             let n = panels[i][0] + panels[i][1]
-            p1y = pr - (n % pr)
-            p1x = Math.floor(n / pr) + 1
+            p1y = pr - (n % pr) - 1
+            p1x = Math.floor(n / pr)
             if (datum.anomaly) {
               // true pos
               panels[i][0]++
@@ -152,8 +101,8 @@ export default function Index() {
             }
           } else {
             let n = panels[i][2] + panels[i][3]
-            p1y = pr - (n % pr)
-            p1x = pc - Math.floor(n / pr)
+            p1y = pr - (n % pr) - 1
+            p1x = pc - Math.floor(n / pr) - 1
             if (!datum.anomaly) {
               // true neg
               panels[i][2]++
@@ -171,6 +120,8 @@ export default function Index() {
         }
 
         let readouts = readouts_ref.current
+
+        let accuracies = []
         for (let i = 0; i < readouts.length; i++) {
           let $r = readouts[i].current
           let r0 = $r.childNodes[1].childNodes
@@ -179,29 +130,50 @@ export default function Index() {
           // tp 0, fp 1, tn 2, fn 3
 
           // precision tp / (tp + fp)
-          r0[0].childNodes[1].innerText =
-            Math.round((panels[i][0] / (panels[i][0] + panels[i][1])) * 100) +
-            '%'
-          // accuracy tp / (tp + fp)
-          r0[1].childNodes[1].innerText =
-            Math.round((panels[i][0] / (panels[i][0] + panels[i][1])) * 100) +
-            '%'
-          // recall tp / (tp + fn)
-          r0[2].childNodes[1].innerText =
-            Math.round((panels[i][0] / (panels[i][0] + panels[i][3])) * 100) +
-            '%'
+          let precision = Math.round(
+            (panels[i][0] / (panels[i][0] + panels[i][1])) * 100
+          )
+          r0[0].childNodes[1].innerText = precision + '%'
 
-          r1[0].childNodes[1].innerText = panels[i][0] + panels[i][1]
+          // accuracy tp / (tp + fp)
+          let accuracy = Math.round(
+            (panels[i][0] / (panels[i][0] + panels[i][1])) * 100
+          )
+          r0[1].childNodes[1].innerText = accuracy + '%'
+
+          // recall tp / (tp + fn)
+          let recall = Math.round(
+            (panels[i][0] / (panels[i][0] + panels[i][3])) * 100
+          )
+          r0[2].childNodes[1].innerText = recall + '%'
+
+          accuracies.push([i, accuracy, precision, recall])
+
+          r1[0].childNodes[1].innerText = panels[i][0]
           r1[1].childNodes[1].innerText = panels[i][1]
-          r1[2].childNodes[1].innerText = panels[i][2] + panels[i][3]
+          r1[2].childNodes[1].innerText = panels[i][2]
           r1[3].childNodes[1].innerText = panels[i][3]
         }
+
+        let ranking = rankings_ref.current
+        let sorti = sort_options.indexOf(sort)
+        accuracies.sort(function(a, b) {
+          return b[sorti + 1] - a[sorti + 1]
+        })
+        ranking.innerHTML = accuracies
+          .map(
+            (p, i) =>
+              `<span style="margin-right: 2ch;">${i + 1}. ${
+                short_names[p[0]]
+              }: ${p[1]}%</span>`
+          )
+          .join(' ')
 
         id++
         return prev
       })
     }
-  }, [counter])
+  }, [counter, sort])
 
   useEffect(() => {
     let c = canvas_ref.current
@@ -211,68 +183,64 @@ export default function Index() {
 
     let columns = Math.floor(c.offsetWidth / size)
 
-    let x_gaps = 4 * 2 + 4
-    let panel_columns = Math.floor((columns - (4 * 2 + 4)) / 2)
-    // border of 1
-    let panel_rows = Math.ceil(10000 / (panel_columns - 2)) + 2
+    let panel_columns = Math.floor(columns / 2) - 2
+    let panel_rows = Math.ceil(10000 / panel_columns)
 
-    let pc = panel_columns - 2
-    let pr = panel_rows - 2
+    let pc = panel_columns
+    let pr = panel_rows
+    pcpr_ref.current = [pc, pr]
 
     let p1 = [
-      4 * size,
-      4 * size + fs * lh,
+      1 * size,
+      1 * size + rlh + rlh / 2 + rlh,
       panel_columns * size,
-      panel_rows * size + rlh * 2,
+      panel_rows * size,
     ]
     let p2 = [
-      4 * size + panel_columns * size + 4 * size,
-      4 * size + fs * lh,
+      1 * size + panel_columns * size + 2 * size,
+      1 * size + rlh + rlh / 2 + rlh,
       panel_columns * size,
-      panel_rows * size + rlh * 2,
+      panel_rows * size,
     ]
     let p3 = [
-      4 * size,
-      4 * size + fs * lh + panel_rows * size + 4 * size + rlh * 4,
+      1 * size,
+      1 * size + rlh + panel_rows * size + 1 * size + 5 * rlh + rlh * 2,
       panel_columns * size,
-      panel_rows * size + rlh * 2,
+      panel_rows * size,
     ]
     let p4 = [
-      4 * size + panel_columns * size + 4 * size,
-      4 * size + fs * lh + panel_rows * size + 4 * size + rlh * 4,
+      1 * size + panel_columns * size + 2 * size,
+      1 * size + rlh + panel_rows * size + 1 * size + 5 * rlh + rlh * 2,
       panel_columns * size,
-      panel_rows * size + rlh * 2,
+      panel_rows * size,
     ]
 
     let panels = [p1, p2, p3, p4]
+    panels_ref.current = panels
 
-    ctx.fillStyle = '#ddd'
-    for (let i = 0; i < panels.length; i++) {
-      // ctx.fillRect(...panels[i])
-    }
-
-    // ctx.fillStyle = 'white';
-    // ctx.fillRect(...p1);
-    // ctx.fillRect(...p2);
-    // ctx.fillRect(...p3);
-    // ctx.fillRect(...p4);
-
+    let titles = titles_ref.current
     let readouts = readouts_ref.current
     for (let i = 0; i < readouts.length; i++) {
       let $readout = readouts[i].current
       let panel = panels[i]
       $readout.style.position = 'absolute'
-      $readout.style.left = panel[0] + size + 'px'
-      $readout.style.top = panel[1] + panel[3] - rlh * 2 + 'px'
-      $readout.style.width = panel[2] - size * 2 + 'px'
-      $readout.style.height = fs * lh + 'px'
+      $readout.style.left = panel[0] + 'px'
+      $readout.style.top = panel[1] + panel[3] - 4 * rlh + 1 + 4 * rlh + 'px'
+      $readout.style.width = panel[2] + 'px'
+
+      let $title = titles[i].current
+      $title.style.position = 'absolute'
+      $title.style.left = panel[0] + 'px'
+      $title.style.top = panel[1] - rlh + 'px'
+      $title.style.width = panel[2] + 'px'
+      $title.style.textAlign = 'center'
     }
 
     handler_ref.current = setInterval(() => {
       setCounter(function(prev) {
         return prev + 1
       })
-    }, 10)
+    }, 1)
     return () => {
       if (handler_ref.current !== null) clearInterval(handler_ref.current)
     }
@@ -310,91 +278,118 @@ export default function Index() {
             </div>
           ))}
         </div>
-
-        <canvas
-          ref={canvas_ref}
-          style={{ position: 'absolute', left: 0, top: 0 }}
-        />
-
-        <div style={{ position: 'absolute', left: 0, top: 0 }}>
-          {[...Array(4)].map((n, i) => (
-            <div ref={readouts_ref.current[i]} style={{}}>
-              <div
-                style={{
-                  display: 'flex',
-                  position: 'relative',
-                }}
-              >
-                {[
-                  ['class pos', 'red'],
-                  ['false pos', 'black'],
-                  ['class neg', 'black'],
-                  ['false neg', 'red'],
-                ].map((o, i) => {
-                  return (
-                    <div
-                      style={{
-                        textAlign: 'center',
-                        flexGrow: 1,
-                      }}
-                    >
-                      <div>{o[0]}</div>
-                      <div
-                        style={{
-                          background: o[1],
-                          color: 'white',
-                          borderLeft:
-                            i === 1 || i === 3
-                              ? `solid 1px ${o[1]}`
-                              : 'dotted 1px white',
-                          borderRight:
-                            i === 1 || i === 3
-                              ? `solid 1px ${o[1]}`
-                              : 'dotted 1px white',
-                          marginLeft: -0.5,
-                          marginRight: -0.5,
-                        }}
-                      >
-                        0
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-
-              <div
-                style={{
-                  display: 'flex',
-                  position: 'relative',
-                }}
-              >
-                {[['precision'], ['accuracy'], ['recall']].map(o => {
-                  return (
-                    <div
-                      style={{
-                        textAlign: 'center',
-                        flexGrow: 1,
-                      }}
-                    >
-                      <div>{o[0]}</div>
-                      <div
-                        style={{
-                          background: 'black',
-                          color: 'white',
-                          borderLeft: 'dotted 1px white',
-                          marginLeft: -0.5,
-                          marginRight: -0.5,
-                          borderRight: 'dotted 1px white',
-                        }}
-                      >
-                        0
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
+        <div style={{ marginTop: rlh }}>
+          <div style={{ paddingLeft: '1ch', display: 'flex' }}>
+            <div>Rank by</div>
+            <div
+              style={{
+                display: 'flex',
+                paddingLeft: '0.5ch',
+                paddingRight: '0.5ch',
+              }}
+            >
+              {sort_options.map(o => (
+                <div
+                  style={{
+                    background: o === sort ? 'black' : 'white',
+                    color: o === sort ? 'white' : 'black',
+                    textDecoration: o !== sort ? 'underline' : 'none',
+                    cursor: o !== sort ? 'pointer' : 'default',
+                    paddingLeft: '0.5ch',
+                    paddingRight: '0.5ch',
+                  }}
+                  onClick={() => {
+                    setSort(o)
+                  }}
+                >
+                  {o}
+                </div>
+              ))}
             </div>
-          ))}
+            <div ref={rankings_ref} style={{ display: 'flex' }} />
+          </div>
+        </div>
+        <div style={{ position: 'relative' }}>
+          <canvas
+            ref={canvas_ref}
+            style={{ position: 'absolute', left: 0, top: 0 }}
+          />
+
+          <div style={{ position: 'absolute', left: 0, top: 0 }}>
+            {names.map((n, i) => [
+              <div ref={titles_ref.current[i]} style={{}}>
+                {n}
+              </div>,
+              <div ref={readouts_ref.current[i]} style={{}}>
+                <div
+                  style={{
+                    display: 'flex',
+                    position: 'relative',
+                  }}
+                >
+                  {[
+                    ['true pos', 'red'],
+                    ['false pos', 'black'],
+                    ['true neg', 'black'],
+                    ['false neg', 'red'],
+                  ].map((o, i) => {
+                    return (
+                      <div
+                        style={{
+                          textAlign: 'center',
+                          flexGrow: 1,
+                          borderRight: i === 1 ? 'solid 1px white' : 'none',
+                          borderLeft: i === 2 ? 'solid 1px white' : 'none',
+                        }}
+                      >
+                        <div>{o[0]}</div>
+                        <div
+                          style={{
+                            background: o[1],
+                            color: 'white',
+                          }}
+                        >
+                          0
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                <div
+                  style={{
+                    display: 'flex',
+                    position: 'relative',
+                  }}
+                >
+                  {[
+                    ['precision', '25%'],
+                    ['accuracy', '50%'],
+                    ['recall', '25%'],
+                  ].map(o => {
+                    return (
+                      <div
+                        style={{
+                          textAlign: 'center',
+                          width: o[1],
+                        }}
+                      >
+                        <div>{o[0]}</div>
+                        <div
+                          style={{
+                            background: 'black',
+                            color: 'white',
+                          }}
+                        >
+                          0
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>,
+            ])}
+          </div>
         </div>
 
         <div
