@@ -20,8 +20,8 @@ let top_lines = 70
 let frames = 6
 let interval = frames / 2
 
-let names = ['SVM', 'Variational Autoencoder', 'Sequence2Sequence', 'GAN']
-let short_names = ['SVM', 'VAE', 'Seq', 'GAN']
+let names = ['Autoencoder', 'Variational Autoencoder']
+let short_names = ['AE', 'VAE']
 
 let id = 0
 let sx = 0
@@ -31,17 +31,21 @@ let sm = 1
 
 let size = 4
 
-let panels = [...Array(4)].map(n => [0, 0, 0, 0])
+let panel_number = 2
+let panels = [...Array(panel_number)].map(n => [0, 0, 0, 0])
 
 let sort_options = ['accuracy', 'precision', 'recall']
 
 export default function Index() {
   let [counter, setCounter] = useState(-1)
+  let si = useRef(0)
   let [flow, setFlow] = useState([])
+  let [samples, setSamples] = useState(null)
+  let [keys, setKeys] = useState(null)
   let handler_ref = useRef(null)
   let canvas_ref = useRef(null)
-  let readouts_ref = useRef([...Array(4)].map(() => createRef()))
-  let titles_ref = useRef([...Array(4)].map(() => createRef()))
+  let readouts_ref = useRef([...Array(panel_number)].map(() => createRef()))
+  let titles_ref = useRef([...Array(panel_number)].map(() => createRef()))
   let [sort, setSort] = useState(sort_options[0])
   let pcpr_ref = useRef(null)
   let panels_ref = useRef(null)
@@ -53,22 +57,15 @@ export default function Index() {
 
     if (counter % interval === 0) {
       setFlow(function(prev) {
-        let anomaly = Math.random() > 0.8
-        let datum = {
-          id: id,
-          gen: counter,
-          anomaly: anomaly,
-          detected: [
-            anomaly ? Math.random() > 0.4 : Math.random() > 0.9,
-            anomaly ? Math.random() > 0.3 : Math.random() > 0.92,
-            anomaly ? Math.random() > 0.2 : Math.random() > 0.94,
-            anomaly ? Math.random() > 0.1 : Math.random() > 0.96,
-          ],
-        }
-        prev.unshift(datum)
+        // make sure counter is not skipping numbers...
+        let sample = samples[si.current]
+        prev.unshift(sample)
 
+        let anomaly = sample[19] === 1 ? true : false
+
+        // check if anomaly
         let ctx = c.getContext('2d')
-        if (datum.anomaly) {
+        if (anomaly) {
           ctx.fillStyle = 'red'
         } else {
           ctx.fillStyle = 'black'
@@ -84,15 +81,20 @@ export default function Index() {
           // ctx.fillRect(...p)
         }
 
-        let panel_data = [p1, p2, p3, p4]
+        let panel_data = [p1, p2, p3, p4].slice(0, panel_number)
+        let panel_keys = [21, 20]
         for (let i = 0; i < panel_data.length; i++) {
           let pan = panel_data[i]
+          let detected = sample[panel_keys[i]]
+          if (si.current < 100) {
+            console.log(detected)
+          }
           let p1x, p1y
-          if (datum.detected[i]) {
+          if (detected > 0.1) {
             let n = panels[i][0] + panels[i][1]
             p1y = pr - (n % pr) - 1
             p1x = Math.floor(n / pr)
-            if (datum.anomaly) {
+            if (anomaly) {
               // true pos
               panels[i][0]++
             } else {
@@ -103,7 +105,7 @@ export default function Index() {
             let n = panels[i][2] + panels[i][3]
             p1y = pr - (n % pr) - 1
             p1x = pc - Math.floor(n / pr) - 1
-            if (!datum.anomaly) {
+            if (anomaly) {
               // true neg
               panels[i][2]++
             } else {
@@ -172,78 +174,92 @@ export default function Index() {
         id++
         return prev
       })
+      si.current = si.current + 1
     }
-  }, [counter, sort])
+  }, [samples, counter, sort])
 
   useEffect(() => {
-    let c = canvas_ref.current
-    c.width = window.innerWidth
-    c.height = window.innerHeight
-    let ctx = c.getContext('2d')
-
-    let columns = Math.floor(c.offsetWidth / size)
-
-    let panel_columns = Math.floor(columns / 2) - 2
-    let panel_rows = Math.ceil(10000 / panel_columns)
-
-    let pc = panel_columns
-    let pr = panel_rows
-    pcpr_ref.current = [pc, pr]
-
-    let p1 = [
-      1 * size,
-      1 * size + rlh + rlh / 2 + rlh,
-      panel_columns * size,
-      panel_rows * size,
-    ]
-    let p2 = [
-      1 * size + panel_columns * size + 2 * size,
-      1 * size + rlh + rlh / 2 + rlh,
-      panel_columns * size,
-      panel_rows * size,
-    ]
-    let p3 = [
-      1 * size,
-      1 * size + rlh + panel_rows * size + 1 * size + 5 * rlh + rlh * 2,
-      panel_columns * size,
-      panel_rows * size,
-    ]
-    let p4 = [
-      1 * size + panel_columns * size + 2 * size,
-      1 * size + rlh + panel_rows * size + 1 * size + 5 * rlh + rlh * 2,
-      panel_columns * size,
-      panel_rows * size,
-    ]
-
-    let panels = [p1, p2, p3, p4]
-    panels_ref.current = panels
-
-    let titles = titles_ref.current
-    let readouts = readouts_ref.current
-    for (let i = 0; i < readouts.length; i++) {
-      let $readout = readouts[i].current
-      let panel = panels[i]
-      $readout.style.position = 'absolute'
-      $readout.style.left = panel[0] + 'px'
-      $readout.style.top = panel[1] + panel[3] - 4 * rlh + 1 + 4 * rlh + 'px'
-      $readout.style.width = panel[2] + 'px'
-
-      let $title = titles[i].current
-      $title.style.position = 'absolute'
-      $title.style.left = panel[0] + 'px'
-      $title.style.top = panel[1] - rlh + 'px'
-      $title.style.width = panel[2] + 'px'
-      $title.style.textAlign = 'center'
-    }
-
-    handler_ref.current = setInterval(() => {
-      setCounter(function(prev) {
-        return prev + 1
-      })
-    }, 1)
-    return () => {
+    // assumes only set once
+    if (samples !== null) {
+      handler_ref.current = setInterval(() => {
+        setCounter(function(prev) {
+          return prev + 1
+        })
+      }, 1)
+    } else {
       if (handler_ref.current !== null) clearInterval(handler_ref.current)
     }
+  }, [samples])
+
+  useEffect(() => {
+    fetch('sampled.json')
+      .then(r => r.json())
+      .then(data => {
+        let c = canvas_ref.current
+        c.width = window.innerWidth
+        c.height = window.innerHeight
+        let ctx = c.getContext('2d')
+
+        let columns = Math.floor(c.offsetWidth / size)
+
+        let panel_columns = Math.floor(columns / 2) - 2
+        let panel_rows = Math.ceil(10000 / panel_columns)
+
+        let pc = panel_columns
+        let pr = panel_rows
+        pcpr_ref.current = [pc, pr]
+
+        let p1 = [
+          1 * size,
+          1 * size + rlh + rlh / 2 + rlh,
+          panel_columns * size,
+          panel_rows * size,
+        ]
+        let p2 = [
+          1 * size + panel_columns * size + 2 * size,
+          1 * size + rlh + rlh / 2 + rlh,
+          panel_columns * size,
+          panel_rows * size,
+        ]
+        let p3 = [
+          1 * size,
+          1 * size + rlh + panel_rows * size + 1 * size + 5 * rlh + rlh * 2,
+          panel_columns * size,
+          panel_rows * size,
+        ]
+        let p4 = [
+          1 * size + panel_columns * size + 2 * size,
+          1 * size + rlh + panel_rows * size + 1 * size + 5 * rlh + rlh * 2,
+          panel_columns * size,
+          panel_rows * size,
+        ]
+
+        let panels = [p1, p2, p3, p4]
+        panels_ref.current = panels
+
+        let titles = titles_ref.current
+        let readouts = readouts_ref.current
+        for (let i = 0; i < readouts.length; i++) {
+          let $readout = readouts[i].current
+          let panel = panels[i]
+          $readout.style.position = 'absolute'
+          $readout.style.left = panel[0] + 'px'
+          $readout.style.top =
+            panel[1] + panel[3] - 4 * rlh + 1 + 4 * rlh + 'px'
+          $readout.style.width = panel[2] + 'px'
+
+          let $title = titles[i].current
+          $title.style.position = 'absolute'
+          $title.style.left = panel[0] + 'px'
+          $title.style.top = panel[1] - rlh + 'px'
+          $title.style.width = panel[2] + 'px'
+          $title.style.textAlign = 'center'
+        }
+
+        console.log(data.keys)
+        setKeys(data.keys)
+        setSamples(data.data)
+      })
   }, [])
 
   return (
