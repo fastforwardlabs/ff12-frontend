@@ -20,8 +20,13 @@ let top_lines = 70
 let frames = 6
 let interval = frames / 2
 
-let names = ['Autoencoder', 'Variational Autoencoder']
-let short_names = ['AE', 'VAE']
+let names = [
+  'Autoencoder',
+  'Variational Autoencoder',
+  'Autoencoder',
+  'Variational Autoencoder',
+]
+let short_names = ['AE', 'VAE', 'AE', 'VAE']
 
 let id = 0
 let sx = 0
@@ -31,7 +36,7 @@ let sm = 1
 
 let size = 4
 
-let panel_number = 2
+let panel_number = 4
 let panels = [...Array(panel_number)].map(n => [0, 0, 0, 0])
 
 let sort_options = ['accuracy', 'precision', 'recall']
@@ -55,7 +60,7 @@ export default function Index() {
     let c = canvas_ref.current
     let columns = Math.floor(c.offsetWidth / size)
 
-    if (counter % interval === 0) {
+    if (counter % interval === 0 && si.current < 10000 - 1) {
       setFlow(function(prev) {
         // make sure counter is not skipping numbers...
         let sample = samples[si.current]
@@ -81,8 +86,8 @@ export default function Index() {
           // ctx.fillRect(...p)
         }
 
-        let panel_data = [p1, p2, p3, p4].slice(0, panel_number)
-        let panel_keys = [21, 20]
+        let panel_data = [p1, p2, p3, p4]
+        let panel_keys = [21, 20, 21, 20]
         for (let i = 0; i < panel_data.length; i++) {
           let pan = panel_data[i]
           let detected = sample[panel_keys[i]]
@@ -106,11 +111,11 @@ export default function Index() {
             p1y = pr - (n % pr) - 1
             p1x = pc - Math.floor(n / pr) - 1
             if (anomaly) {
-              // true neg
-              panels[i][2]++
-            } else {
               // false neg
               panels[i][3]++
+            } else {
+              // true neg
+              panels[i][2]++
             }
           }
           ctx.fillRect(
@@ -137,9 +142,11 @@ export default function Index() {
           )
           r0[0].childNodes[1].innerText = precision + '%'
 
-          // accuracy tp / (tp + fp)
+          //Accuracy = (TP+TN)/(TP+TN+FP+FN)
           let accuracy = Math.round(
-            (panels[i][0] / (panels[i][0] + panels[i][1])) * 100
+            ((panels[i][0] + panels[i][2]) /
+              (panels[i][0] + panels[i][1] + panels[i][2] + panels[i][3])) *
+              100
           )
           r0[1].childNodes[1].innerText = accuracy + '%'
 
