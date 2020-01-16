@@ -171,10 +171,7 @@ export default function Index() {
         })
         ranking.innerHTML = accuracies
           .map(
-            (p, i) =>
-              `<span style="margin-right: 2ch;">${i + 1}. ${
-                short_names[p[0]]
-              }: ${p[1]}%</span>`
+            (p, i) => `<div style="">${i + 1}. ${names[p[0]]}: ${p[1]}%</div>`
           )
           .join(' ')
 
@@ -192,7 +189,7 @@ export default function Index() {
         setCounter(function(prev) {
           return prev + 1
         })
-      }, 1)
+      }, 25)
     } else {
       if (handler_ref.current !== null) clearInterval(handler_ref.current)
     }
@@ -203,46 +200,64 @@ export default function Index() {
       .then(r => r.json())
       .then(data => {
         let c = canvas_ref.current
+        c.style.top = '0px'
         c.width = window.innerWidth
-        c.height = window.innerHeight
         let ctx = c.getContext('2d')
+
+        // ctx.fillStyle = '#ddd'
+        // ctx.fillRect(0, 0, c.width, c.height)
 
         let columns = Math.floor(c.offsetWidth / size)
 
         let panel_columns = Math.floor(columns / 2) - 2
-        let panel_rows = Math.ceil(10000 / panel_columns)
+        let panel_rows = Math.ceil(10000 / (panel_columns - 1))
 
         let pc = panel_columns
         let pr = panel_rows
         pcpr_ref.current = [pc, pr]
 
-        let p1 = [
-          1 * size,
-          1 * size + rlh + rlh / 2 + rlh,
-          panel_columns * size,
-          panel_rows * size,
-        ]
+        let p1 = [1 * size, rlh, panel_columns * size, panel_rows * size]
         let p2 = [
           1 * size + panel_columns * size + 2 * size,
-          1 * size + rlh + rlh / 2 + rlh,
+          rlh,
           panel_columns * size,
           panel_rows * size,
         ]
         let p3 = [
           1 * size,
-          1 * size + rlh + panel_rows * size + 1 * size + 5 * rlh + rlh * 2,
+          rlh + pr * size + 5 * rlh + rlh / 2,
           panel_columns * size,
           panel_rows * size,
         ]
         let p4 = [
           1 * size + panel_columns * size + 2 * size,
-          1 * size + rlh + panel_rows * size + 1 * size + 5 * rlh + rlh * 2,
+          rlh + pr * size + 5 * rlh + rlh / 2,
           panel_columns * size,
           panel_rows * size,
         ]
 
         let panels = [p1, p2, p3, p4]
         panels_ref.current = panels
+
+        c.height = p4[1] + p4[3] + 4 * rlh
+
+        for (let panel of panels) {
+          ctx.fillStyle = '#ccc'
+          ctx.fillRect(
+            panel[0] - 0.5,
+            panel[1] - rlh - 0.5,
+            panel[2] + 1,
+            panel[3] + rlh * 5 + 1
+          )
+          // ctx.strokeRect(
+          //   panel[0] - 0.5,
+          //   panel[1] - rlh - 0.5,
+          //   panel[2] + 1,
+          //   panel[3] + rlh * 5 + 1
+          // )
+          ctx.fillStyle = 'white'
+          ctx.fillRect(...panel)
+        }
 
         let titles = titles_ref.current
         let readouts = readouts_ref.current
@@ -263,7 +278,6 @@ export default function Index() {
           $title.style.textAlign = 'center'
         }
 
-        console.log(data.keys)
         setKeys(data.keys)
         setSamples(data.data)
       })
@@ -272,71 +286,38 @@ export default function Index() {
   return (
     <div>
       <Head>
-        <title>Hack</title>
+        <title>Failsafe</title>
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <div
-        style={{
-          position: 'relative',
-          height: '100vh',
-          width: '100%',
-          overflow: 'hidden',
-        }}
-      >
-        <div style={{}}>
-          {flow.slice(0, 1).map((o, i) => (
+      <div style={{ paddingLeft: '1ch', marginTop: rlh / 4 }}>CONNECTIONS</div>
+      <div style={{}}>
+        <div style={{ height: rlh * 4, background: 'black' }}>
+          {flow.slice(0, 5).map((o, i) => (
             <div
               style={{
                 position: 'relative',
-                // background: o.anomaly ? 'red' : 'black',
-                background: 'black',
+                // background: o[19] === 1 ? 'red' : 'black',
+                // background: 'black',
+                paddingLeft: '1ch',
+                paddingRight: '1ch',
                 color: 'white',
-                paddingLeft: size,
-                paddingRight: size,
                 height: fs * lh,
+                display: 'flex',
               }}
             >
-              {o.id}
+              <div style={{ width: '100%', textAlign: 'right' }}>{counter}</div>
+              {o.slice(1, 19).map(v => (
+                <div style={{ width: '100%', textAlign: 'right' }}>{v}</div>
+              ))}
             </div>
           ))}
         </div>
-        <div style={{ marginTop: rlh }}>
-          <div style={{ paddingLeft: '1ch', display: 'flex' }}>
-            <div>Rank by</div>
-            <div
-              style={{
-                display: 'flex',
-                paddingLeft: '0.5ch',
-                paddingRight: '0.5ch',
-              }}
-            >
-              {sort_options.map(o => (
-                <div
-                  style={{
-                    background: o === sort ? 'black' : 'white',
-                    color: o === sort ? 'white' : 'black',
-                    textDecoration: o !== sort ? 'underline' : 'none',
-                    cursor: o !== sort ? 'pointer' : 'default',
-                    paddingLeft: '0.5ch',
-                    paddingRight: '0.5ch',
-                  }}
-                  onClick={() => {
-                    setSort(o)
-                  }}
-                >
-                  {o}
-                </div>
-              ))}
-            </div>
-            <div ref={rankings_ref} style={{ display: 'flex' }} />
-          </div>
+        <div style={{ paddingLeft: '1ch', marginTop: rlh / 4 }}>
+          DETECTION STRATEGIES
         </div>
         <div style={{ position: 'relative' }}>
-          <canvas
-            ref={canvas_ref}
-            style={{ position: 'absolute', left: 0, top: 0 }}
-          />
+          <canvas ref={canvas_ref} style={{ position: 'relative' }} />
 
           <div style={{ position: 'absolute', left: 0, top: 0 }}>
             {names.map((n, i) => [
@@ -361,8 +342,8 @@ export default function Index() {
                         style={{
                           textAlign: 'center',
                           flexGrow: 1,
-                          borderRight: i === 1 ? 'solid 1px white' : 'none',
-                          borderLeft: i === 2 ? 'solid 1px white' : 'none',
+                          borderRight: i === 1 ? 'solid 1px #ccc' : 'none',
+                          borderLeft: i === 2 ? 'solid 1px #ccc' : 'none',
                         }}
                       >
                         <div>{o[0]}</div>
@@ -413,6 +394,38 @@ export default function Index() {
               </div>,
             ])}
           </div>
+        </div>
+        <div style={{ marginTop: rlh / 4 + 2 }}>
+          <div style={{ paddingLeft: '1ch' }}>
+            <div>RANKINGS</div>
+            <div
+              style={{
+                display: 'flex',
+                paddingLeft: '0.5ch',
+                paddingRight: '0.5ch',
+              }}
+            >
+              <div>Strategy</div>
+              {sort_options.map(o => (
+                <div
+                  style={{
+                    background: o === sort ? 'black' : 'white',
+                    color: o === sort ? 'white' : 'black',
+                    textDecoration: o !== sort ? 'underline' : 'none',
+                    cursor: o !== sort ? 'pointer' : 'default',
+                    paddingLeft: '0.5ch',
+                    paddingRight: '0.5ch',
+                  }}
+                  onClick={() => {
+                    setSort(o)
+                  }}
+                >
+                  {o}
+                </div>
+              ))}
+            </div>
+          </div>
+          <div ref={rankings_ref} style={{ paddingLeft: '1ch' }} />
         </div>
 
         <div
