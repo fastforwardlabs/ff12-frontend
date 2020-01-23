@@ -10,6 +10,19 @@ import Agent from '../components/agent'
 import { color } from '../components/constants'
 import * as _ from 'lodash'
 
+let scheme = {
+  name: 'Paraiso Dark',
+  bg: '#2f1e2e',
+  fg: '#bbb',
+  hues: ['#ef6155', '#48b685', '#fec418', '#06b6ef', '#815ba4', '#5bc4bf'],
+}
+let red = scheme.hues[0]
+let green = scheme.hues[1]
+let yellow = scheme.hues[2]
+let teal = scheme.hues[3]
+let blue = scheme.hues[4]
+let purple = scheme.hues[5]
+
 let fs = 13
 let lh = 1.5
 let ch = 9.599990844726562
@@ -26,6 +39,7 @@ let names = [
   'Autoencoder',
   'Variational Autoencoder',
 ]
+let bgs = [yellow, teal, green, blue]
 let short_names = ['AE', 'VAE', 'AE', 'VAE']
 
 let id = 0
@@ -51,10 +65,12 @@ export default function Index() {
   let canvas_ref = useRef(null)
   let readouts_ref = useRef([...Array(panel_number)].map(() => createRef()))
   let titles_ref = useRef([...Array(panel_number)].map(() => createRef()))
+  let borders_ref = useRef([...Array(panel_number)].map(() => createRef()))
   let [sort, setSort] = useState(sort_options[0])
   let pcpr_ref = useRef(null)
   let panels_ref = useRef(null)
   let rankings_ref = useRef(null)
+  let cr_ref = useRef(null)
 
   useEffect(() => {
     let c = canvas_ref.current
@@ -71,9 +87,9 @@ export default function Index() {
         // check if anomaly
         let ctx = c.getContext('2d')
         if (anomaly) {
-          ctx.fillStyle = 'red'
+          ctx.fillStyle = red
         } else {
-          ctx.fillStyle = 'black'
+          ctx.fillStyle = scheme.bg
         }
 
         let [pc, pr] = pcpr_ref.current
@@ -158,20 +174,46 @@ export default function Index() {
 
           accuracies.push([i, accuracy, precision, recall])
 
-          r1[0].childNodes[1].innerText = panels[i][0]
-          r1[1].childNodes[1].innerText = panels[i][1]
-          r1[2].childNodes[1].innerText = panels[i][2]
-          r1[3].childNodes[1].innerText = panels[i][3]
+          r1[0].childNodes[0].innerText = panels[i][0]
+          r1[1].childNodes[0].innerText = panels[i][1]
+          r1[3].childNodes[0].innerText = panels[i][2]
+          r1[4].childNodes[0].innerText = panels[i][3]
         }
+
+        let cr = cr_ref.current
+        let crx = cr.getContext('2d')
+        cr.width = window.innerWidth - ch * 2
+        cr.height = rlh * 4
 
         let ranking = rankings_ref.current
         let sorti = sort_options.indexOf(sort)
         accuracies.sort(function(a, b) {
           return b[sorti + 1] - a[sorti + 1]
         })
+
+        let crstep = cr.width / 4
+        crx.clearRect(0, 0, cr.with, cr.height)
+        crx.fillStyle = scheme.fg
+        for (let a = 0; a < accuracies.length; a++) {
+          let p = accuracies[a]
+          let y = a * rlh
+          for (let cra = 0; cra < 3; cra++) {
+            let x = cra * crstep + crstep
+            let y = a * rlh
+            crx.fillRect(x, y - 1, (p[cra + 1] / 100) * crstep, rlh + 2)
+          }
+        }
+
         ranking.innerHTML = accuracies
           .map(
-            (p, i) => `<div style="">${i + 1}. ${names[p[0]]}: ${p[1]}%</div>`
+            (p, i) => `<div style="display: flex;">
+              <div style="width: 100%;"><span style="display: inline-block; background: ${
+                bgs[p[0]]
+              };">${names[p[0]]}</div> 
+              <div style="width: 100%;">${p[1]}%</div>
+              <div style="width: 100%;">${p[2]}%</div>
+              <div style="width: 100%;">${p[3]}%</div>
+            </div>`
           )
           .join(' ')
 
@@ -179,6 +221,10 @@ export default function Index() {
         return prev
       })
       si.current = si.current + 1
+
+      if (si.current >= 10000) {
+        if (handler_ref.current !== null) clearInterval(handler_ref.current)
+      }
     }
   }, [samples, counter, sort])
 
@@ -189,7 +235,7 @@ export default function Index() {
         setCounter(function(prev) {
           return prev + 1
         })
-      }, 25)
+      }, 10)
     } else {
       if (handler_ref.current !== null) clearInterval(handler_ref.current)
     }
@@ -207,33 +253,38 @@ export default function Index() {
         // ctx.fillStyle = '#ddd'
         // ctx.fillRect(0, 0, c.width, c.height)
 
-        let columns = Math.floor(c.offsetWidth / size)
+        let columns = Math.floor((c.offsetWidth - 4 * ch) / size)
 
-        let panel_columns = Math.floor(columns / 2) - 2
+        let panel_columns = Math.floor(columns / 2)
         let panel_rows = Math.ceil(10000 / (panel_columns - 1))
 
         let pc = panel_columns
         let pr = panel_rows
         pcpr_ref.current = [pc, pr]
 
-        let p1 = [1 * size, rlh, panel_columns * size, panel_rows * size]
+        let p1 = [
+          ch,
+          rlh + rlh / 2,
+          panel_columns * size + 1,
+          panel_rows * size + 1,
+        ]
         let p2 = [
-          1 * size + panel_columns * size + 2 * size,
-          rlh,
-          panel_columns * size,
-          panel_rows * size,
+          ch * 3 + panel_columns * size + rlh / 4,
+          rlh + rlh / 2,
+          panel_columns * size + 1,
+          panel_rows * size + 1,
         ]
         let p3 = [
-          1 * size,
-          rlh + pr * size + 5 * rlh + rlh / 2,
-          panel_columns * size,
-          panel_rows * size,
+          ch,
+          rlh + pr * size + 3 * rlh + rlh / 2 + rlh + rlh / 2,
+          panel_columns * size + 1,
+          panel_rows * size + 1,
         ]
         let p4 = [
-          1 * size + panel_columns * size + 2 * size,
-          rlh + pr * size + 5 * rlh + rlh / 2,
-          panel_columns * size,
-          panel_rows * size,
+          ch * 3 + panel_columns * size,
+          rlh + pr * size + 3 * rlh + rlh / 2 + rlh + rlh / 2,
+          panel_columns * size + 1,
+          panel_rows * size + 1,
         ]
 
         let panels = [p1, p2, p3, p4]
@@ -241,21 +292,23 @@ export default function Index() {
 
         c.height = p4[1] + p4[3] + 4 * rlh
 
+        let borders = borders_ref.current
+
         for (let panel of panels) {
-          ctx.fillStyle = '#ccc'
-          ctx.fillRect(
-            panel[0] - 0.5,
-            panel[1] - rlh - 0.5,
-            panel[2] + 1,
-            panel[3] + rlh * 5 + 1
-          )
-          // ctx.strokeRect(
+          // ctx.fillStyle = scheme.fg
+          // ctx.fillRect(
           //   panel[0] - 0.5,
           //   panel[1] - rlh - 0.5,
           //   panel[2] + 1,
           //   panel[3] + rlh * 5 + 1
           // )
-          ctx.fillStyle = 'white'
+          // ctx.strokeRect(
+          //   panel[0] - 0.5,
+          //   panel[1] - rlh - 0.5,
+          //   panel[2] + 1,
+          //   panel[3] + rlh * 5 + 1
+          // // )
+          ctx.fillStyle = '#ccc'
           ctx.fillRect(...panel)
         }
 
@@ -267,15 +320,23 @@ export default function Index() {
           $readout.style.position = 'absolute'
           $readout.style.left = panel[0] + 'px'
           $readout.style.top =
-            panel[1] + panel[3] - 4 * rlh + 1 + 4 * rlh + 'px'
+            panel[1] + panel[3] - 4 * rlh + 1 + 4 * rlh + rlh / 2 + 'px'
           $readout.style.width = panel[2] + 'px'
 
           let $title = titles[i].current
           $title.style.position = 'absolute'
           $title.style.left = panel[0] + 'px'
-          $title.style.top = panel[1] - rlh + 'px'
+          $title.style.top = panel[1] - rlh - rlh / 2 + 'px'
           $title.style.width = panel[2] + 'px'
           $title.style.textAlign = 'center'
+
+          let $border = borders[i].current
+          $border.style.position = 'absolute'
+          $border.style.left = panel[0] + 'px'
+          $border.style.top = panel[1] - rlh - rlh / 2 + 'px'
+          $border.style.width = panel[2] + 'px'
+          $border.style.height = panel[3] + rlh * 4 + 'px'
+          $border.style.border = 'solid 2px ' + bgs[i]
         }
 
         setKeys(data.keys)
@@ -292,13 +353,13 @@ export default function Index() {
 
       <div style={{ paddingLeft: '1ch', marginTop: rlh / 4 }}>CONNECTIONS</div>
       <div style={{}}>
-        <div style={{ height: rlh * 4, background: 'black' }}>
+        <div
+          style={{ height: rlh * 4, background: scheme.bg, overflow: 'hidden' }}
+        >
           {flow.slice(0, 5).map((o, i) => (
             <div
               style={{
                 position: 'relative',
-                // background: o[19] === 1 ? 'red' : 'black',
-                // background: 'black',
                 paddingLeft: '1ch',
                 paddingRight: '1ch',
                 color: 'white',
@@ -313,15 +374,56 @@ export default function Index() {
             </div>
           ))}
         </div>
-        <div style={{ paddingLeft: '1ch', marginTop: rlh / 4 }}>
-          DETECTION STRATEGIES
+
+        <div style={{ marginTop: rlh / 4 + 2, position: 'relative' }}>
+          <div style={{ paddingLeft: '1ch', paddingRight: '1ch' }}>
+            <div
+              style={{
+                display: 'flex',
+              }}
+            >
+              <div
+                style={{
+                  width: '100%',
+                }}
+              >
+                STRATEGY RANKINGS
+              </div>
+              {sort_options.map(o => (
+                <div
+                  style={{
+                    width: '100%',
+                    // background: o === sort ? scheme.bg : 'white',
+                    // color: o === sort ? 'white' : scheme.bg,
+                    textDecoration: o !== sort ? 'underline' : 'none',
+                    cursor: o !== sort ? 'pointer' : 'default',
+                  }}
+                  onClick={() => {
+                    setSort(o)
+                  }}
+                >
+                  {o}
+                </div>
+              ))}
+            </div>
+          </div>
+          <canvas
+            ref={cr_ref}
+            style={{ position: 'absolute', left: ch, bottom: 0 }}
+          />
+          <div
+            ref={rankings_ref}
+            style={{ paddingLeft: '1ch', position: 'relative' }}
+          />
         </div>
+
+        <div style={{ paddingLeft: '1ch', marginTop: rlh / 4 }}>STRATEGIES</div>
         <div style={{ position: 'relative' }}>
           <canvas ref={canvas_ref} style={{ position: 'relative' }} />
 
           <div style={{ position: 'absolute', left: 0, top: 0 }}>
             {names.map((n, i) => [
-              <div ref={titles_ref.current[i]} style={{}}>
+              <div ref={titles_ref.current[i]} style={{ background: bgs[i] }}>
                 {n}
               </div>,
               <div ref={readouts_ref.current[i]} style={{}}>
@@ -332,21 +434,23 @@ export default function Index() {
                   }}
                 >
                   {[
-                    ['true pos', 'red'],
-                    ['false pos', 'black'],
-                    ['true neg', 'black'],
-                    ['false neg', 'red'],
+                    ['true pos', red],
+                    ['false pos', scheme.bg],
+                    ['spacer'],
+                    ['true neg', scheme.bg],
+                    ['false neg', red],
                   ].map((o, i) => {
-                    return (
+                    return o[0] === 'spacer' ? (
+                      <div style={{ width: ch }}></div>
+                    ) : (
                       <div
                         style={{
                           textAlign: 'center',
                           flexGrow: 1,
-                          borderRight: i === 1 ? 'solid 1px #ccc' : 'none',
-                          borderLeft: i === 2 ? 'solid 1px #ccc' : 'none',
+                          // background: o[1],
+                          // color: 'white',
                         }}
                       >
-                        <div>{o[0]}</div>
                         <div
                           style={{
                             background: o[1],
@@ -355,6 +459,7 @@ export default function Index() {
                         >
                           0
                         </div>
+                        <div style={{ fontStyle: 'italic' }}>{o[0]}</div>
                       </div>
                     )
                   })}
@@ -364,6 +469,7 @@ export default function Index() {
                   style={{
                     display: 'flex',
                     position: 'relative',
+                    display: 'none',
                   }}
                 >
                   {[
@@ -381,8 +487,9 @@ export default function Index() {
                         <div>{o[0]}</div>
                         <div
                           style={{
-                            background: 'black',
+                            background: scheme.bg,
                             color: 'white',
+                            // fontSize: fs * 1.25,
                           }}
                         >
                           0
@@ -392,42 +499,10 @@ export default function Index() {
                   })}
                 </div>
               </div>,
+              <div ref={borders_ref.current[i]} style={{}} />,
             ])}
           </div>
         </div>
-        <div style={{ marginTop: rlh / 4 + 2 }}>
-          <div style={{ paddingLeft: '1ch' }}>
-            <div>RANKINGS</div>
-            <div
-              style={{
-                display: 'flex',
-                paddingLeft: '0.5ch',
-                paddingRight: '0.5ch',
-              }}
-            >
-              <div>Strategy</div>
-              {sort_options.map(o => (
-                <div
-                  style={{
-                    background: o === sort ? 'black' : 'white',
-                    color: o === sort ? 'white' : 'black',
-                    textDecoration: o !== sort ? 'underline' : 'none',
-                    cursor: o !== sort ? 'pointer' : 'default',
-                    paddingLeft: '0.5ch',
-                    paddingRight: '0.5ch',
-                  }}
-                  onClick={() => {
-                    setSort(o)
-                  }}
-                >
-                  {o}
-                </div>
-              ))}
-            </div>
-          </div>
-          <div ref={rankings_ref} style={{ paddingLeft: '1ch' }} />
-        </div>
-
         <div
           style={{
             position: 'fixed',
@@ -448,6 +523,12 @@ export default function Index() {
           src: url('/fonts/IBMPlexMono-Regular.woff2') format('woff2'),
             url('/fonts/IBMPlexMono-Regular.woff') format('woff');
         }
+        @font-face {
+          font-family: 'custom';
+          src: url('/fonts/IBMPlexMono-Italic.woff2') format('woff2'),
+            url('/fonts/IBMPlexMono-Italic.woff') format('woff');
+          font-style: italic;
+        }
         * {
           box-sizing: border-box;
         }
@@ -455,7 +536,7 @@ export default function Index() {
           font-family: 'custom', sans-serif;
           font-size: ${fs}px;
           line-height: ${lh};
-          background: #fff;
+          background: #ddd;
           color: #000;
         }
         body {
