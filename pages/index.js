@@ -174,10 +174,10 @@ export default function Index() {
 
           accuracies.push([i, accuracy, precision, recall])
 
-          r1[0].childNodes[0].innerText = panels[i][0]
-          r1[1].childNodes[0].innerText = panels[i][1]
-          r1[3].childNodes[0].innerText = panels[i][2]
-          r1[4].childNodes[0].innerText = panels[i][3]
+          r1[0].childNodes[1].innerText = panels[i][0]
+          r1[1].childNodes[1].innerText = panels[i][1]
+          r1[3].childNodes[1].innerText = panels[i][2]
+          r1[4].childNodes[1].innerText = panels[i][3]
         }
 
         let cr = cr_ref.current
@@ -200,16 +200,25 @@ export default function Index() {
           for (let cra = 0; cra < 3; cra++) {
             let x = cra * crstep + crstep
             let y = a * rlh
+            // crx.fillStyle = bgs[p[0]]
             crx.fillRect(x, y - 1, (p[cra + 1] / 100) * crstep, rlh + 2)
           }
         }
 
         ranking.innerHTML = accuracies
           .map(
-            (p, i) => `<div style="display: flex;">
-              <div style="width: 100%;"><span style="display: inline-block; background: ${
+            (p, i) => `<div style="display: flex; position: relative;">
+            <div style="position: absolute; left: -0.5px; top: -0.5px; height: ${rlh +
+              1}px;
+            border: solid 1px #bbb; display: none;  width: ${pc * size * 2 +
+              ch * 2 +
+              1}px;
+            "></div>
+              <div style="width: 100%;"><span style="position: relative; display: inline-block; background: ${
                 bgs[p[0]]
-              };">${names[p[0]]}</div> 
+              }; padding-right: 0.5ch; padding-left: 0.5ch;">${
+              names[p[0]]
+            }</div> 
               <div style="width: 100%;">${p[1]}%</div>
               <div style="width: 100%;">${p[2]}%</div>
               <div style="width: 100%;">${p[3]}%</div>
@@ -262,27 +271,22 @@ export default function Index() {
         let pr = panel_rows
         pcpr_ref.current = [pc, pr]
 
-        let p1 = [
-          ch,
-          rlh + rlh / 2,
-          panel_columns * size + 1,
-          panel_rows * size + 1,
-        ]
+        let p1 = [ch, rlh, panel_columns * size + 1, panel_rows * size + 1]
         let p2 = [
-          ch * 3 + panel_columns * size + rlh / 4,
-          rlh + rlh / 2,
+          ch * 3 + panel_columns * size,
+          rlh,
           panel_columns * size + 1,
           panel_rows * size + 1,
         ]
         let p3 = [
           ch,
-          rlh + pr * size + 3 * rlh + rlh / 2 + rlh + rlh / 2,
+          rlh + pr * size + 4 * rlh,
           panel_columns * size + 1,
           panel_rows * size + 1,
         ]
         let p4 = [
           ch * 3 + panel_columns * size,
-          rlh + pr * size + 3 * rlh + rlh / 2 + rlh + rlh / 2,
+          rlh + pr * size + 4 * rlh,
           panel_columns * size + 1,
           panel_rows * size + 1,
         ]
@@ -309,7 +313,7 @@ export default function Index() {
           //   panel[3] + rlh * 5 + 1
           // // )
           ctx.fillStyle = '#ccc'
-          ctx.fillRect(...panel)
+          ctx.fillRect(panel[0], panel[1], panel[2], panel[3] + 1)
         }
 
         let titles = titles_ref.current
@@ -319,24 +323,24 @@ export default function Index() {
           let panel = panels[i]
           $readout.style.position = 'absolute'
           $readout.style.left = panel[0] + 'px'
-          $readout.style.top =
-            panel[1] + panel[3] - 4 * rlh + 1 + 4 * rlh + rlh / 2 + 'px'
+          $readout.style.top = panel[1] + panel[3] - 4 * rlh + 4 * rlh + 'px'
           $readout.style.width = panel[2] + 'px'
 
           let $title = titles[i].current
           $title.style.position = 'absolute'
           $title.style.left = panel[0] + 'px'
-          $title.style.top = panel[1] - rlh - rlh / 2 + 'px'
+          $title.style.top = panel[1] - rlh + 'px'
           $title.style.width = panel[2] + 'px'
           $title.style.textAlign = 'center'
 
           let $border = borders[i].current
           $border.style.position = 'absolute'
-          $border.style.left = panel[0] + 'px'
-          $border.style.top = panel[1] - rlh - rlh / 2 + 'px'
-          $border.style.width = panel[2] + 'px'
-          $border.style.height = panel[3] + rlh * 4 + 'px'
+          $border.style.left = panel[0] - 1 + 'px'
+          $border.style.top = panel[1] - rlh + 'px'
+          $border.style.width = panel[2] + 2 + 'px'
+          $border.style.height = panel[3] + rlh * 3 + 2 + 'px'
           $border.style.border = 'solid 2px ' + bgs[i]
+          $border.style.borderTop = 'none'
         }
 
         setKeys(data.keys)
@@ -413,7 +417,11 @@ export default function Index() {
           />
           <div
             ref={rankings_ref}
-            style={{ paddingLeft: '1ch', position: 'relative' }}
+            style={{
+              paddingLeft: '1ch',
+              paddingRight: '1ch',
+              position: 'relative',
+            }}
           />
         </div>
 
@@ -423,7 +431,12 @@ export default function Index() {
 
           <div style={{ position: 'absolute', left: 0, top: 0 }}>
             {names.map((n, i) => [
-              <div ref={titles_ref.current[i]} style={{ background: bgs[i] }}>
+              <div
+                ref={titles_ref.current[i]}
+                style={{
+                  background: bgs[i],
+                }}
+              >
                 {n}
               </div>,
               <div ref={readouts_ref.current[i]} style={{}}>
@@ -439,18 +452,26 @@ export default function Index() {
                     ['spacer'],
                     ['true neg', scheme.bg],
                     ['false neg', red],
-                  ].map((o, i) => {
+                  ].map((o, i2) => {
                     return o[0] === 'spacer' ? (
-                      <div style={{ width: ch }}></div>
+                      <div style={{ width: ch }}>
+                        <div
+                          style={{ width: ch, height: rlh, background: '#ccc' }}
+                        />
+                        <div
+                          style={{ width: ch, height: rlh, background: '#ccc' }}
+                        />
+                      </div>
                     ) : (
                       <div
                         style={{
                           textAlign: 'center',
                           flexGrow: 1,
-                          // background: o[1],
+                          background: '#aaa',
                           // color: 'white',
                         }}
                       >
+                        <div style={{ fontStyle: 'italic' }}>{o[0]}</div>
                         <div
                           style={{
                             background: o[1],
@@ -459,7 +480,6 @@ export default function Index() {
                         >
                           0
                         </div>
-                        <div style={{ fontStyle: 'italic' }}>{o[0]}</div>
                       </div>
                     )
                   })}
