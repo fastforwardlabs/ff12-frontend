@@ -15,15 +15,15 @@ let scheme = {
   bg: '#2f1e2e',
   fg: '#bfbfbf',
   light: '#777',
-  hues: ['#ef6155', '#48b685', '#fec418', '#06b6ef', '#815ba4', '#5bc4bf'],
+  hues: ['#ef6155', '#65D6A3', '#fec418', '#53D1FA', '#BB91E2', '#5bc4bf'],
 }
 let red = scheme.hues[0]
 let green = scheme.hues[1]
 let yellow = scheme.hues[2]
 let teal = scheme.hues[3]
-let blue = scheme.hues[4]
-let purple = scheme.hues[5]
-let bgs = [yellow, teal, green, blue]
+let purple = scheme.hues[4]
+let blue = scheme.hues[5]
+let bgs = [yellow, teal, green, purple]
 let black = scheme.bg
 
 let fs = 13
@@ -72,23 +72,33 @@ export default function Index() {
   let [pspace, setPspace] = useState(null)
   let [pleft, setPleft] = useState(null)
   let panels_ref = useRef([...Array(4)].map(n => [...Array(4)].map(n => 0)))
+  let pdim_ref = useRef([])
+  let tdim_ref = useRef([])
   let title_ref = useRef(null)
   let readout_ref = useRef(null)
   let truth_ref = useRef([0, 0])
   let treadout_ref = useRef(null)
   let truthtitle_ref = useRef(null)
+  let ranklabel_ref = useRef(null)
+  let topbar_ref = useRef(null)
+  let [dpr, setDpr] = useState(1)
+  let icon_ref = useRef(null)
 
   useEffect(() => {
     if (data !== null) {
       // set layout
       let v = vref.current
-      v.width = pspace - 8
+
+      let vwidth = pspace - 8
+      v.width = vwidth * dpr
       v.style.marginLeft = pleft + 'px'
       let vx = v.getContext('2d')
+      let pdim = pdim_ref.current
+      let tdim = tdim_ref.current
 
       let columns = Math.floor(v.width / size)
       let panel_columns = Math.floor(
-        Math.floor((v.width - size * 4) / size) / 2
+        Math.floor((v.width / dpr - size * 4) / size) / 2
       )
       let panel_rows = Math.ceil(10000 / (panel_columns - 1))
 
@@ -106,33 +116,45 @@ export default function Index() {
       let tr = Math.ceil(10000 / (columns - 1))
       let tw = tc * size
       let th = tr * size
+      tdim_ref.current = [tw, th]
 
-      v.height =
-        (top + ph + bottom + bottom_space) * 2 +
-        top +
-        th +
-        bottom +
-        bottom_space
+      let vheight =
+        (top + ph + bottom + bottom_space) * 2 + top + bottom + bottom_space
+      v.height = vheight * dpr
+
+      v.style.width = vwidth + 'px'
+      v.style.height = vheight + 'px'
+
+      vx.scale(dpr, dpr)
 
       let $rank = rankref.current
       $rank.style.width = tw + 'px'
       $rank.style.left = pleft + 'px'
       let s = sref.current
-      s.width = tw
-      s.height = rlh * 4
+      let swidth = tw
+      let sheight = rlh * 4
+      s.width = swidth * dpr
+      s.height = sheight * dpr
+      s.style.width = swidth + 'px'
+      s.style.height = sheight + 'px'
+      let sx = s.getContext('2d')
+      sx.scale(dpr, dpr)
+
+      let ranklabel = ranklabel_ref.current
+      ranklabel.style.width = tw + 'px'
 
       vx.fillStyle = '#eee'
       for (let r = 0; r < pr; r++) {
         for (let c = 0; c < pc; c++) {
+          let i = r * pc + c
           let x = c * (pw + size * 4)
           let y = r * (top + ph + bottom + bottom_space) + top
           let w = pw
           let h = ph
+          pdim[i] = [x, y, w, h]
           vx.fillRect(x, y, w, h)
         }
       }
-
-      vx.fillRect(0, 2 * (top + ph + bottom + bottom_space) + top, tw, th)
 
       let $titles = title_ref.current
       for (let r = 0; r < pr; r++) {
@@ -165,7 +187,16 @@ export default function Index() {
       let tre = treadout_ref.current
       tre.style.width = tw + 'px'
       tre.style.left = cw + 'px'
-      tre.style.top = 2 * (top + ph + bottom + bottom_space) + th + rlh + 'px'
+      tre.style.top = 2 * (top + ph + bottom + bottom_space) + rlh + 'px'
+
+      let tb = topbar_ref.current
+      tb.style.width = tw + 'px'
+
+      let icon = icon_ref.current
+      icon.width = cw * dpr
+      icon.height = rlh * 1.5 * dpr
+      let ix = icon.getContext('2d')
+      ix.scale(dpr, dpr)
 
       handler_ref.current = rInterval(() => {
         setFrame(function(prev) {
@@ -185,6 +216,10 @@ export default function Index() {
       let $read = readout_ref.current
       let truth = truth_ref.current
       let $truth = treadout_ref.current
+      let pdim = pdim_ref.current
+
+      let v = vref.current
+      let vx = v.getContext('2d')
 
       // update panel data
       let panel_keys = [21, 20, 21, 20]
@@ -192,18 +227,28 @@ export default function Index() {
       let anomaly = record[19] === 1 ? true : false
 
       if (anomaly) {
+        vx.fillStyle = red
         truth[0]++
       } else {
+        vx.fillStyle = scheme.bg
         truth[1]++
       }
       $truth.childNodes[0].childNodes[1].innerHTML = truth[0]
       $truth.childNodes[1].childNodes[1].innerHTML = truth[1]
 
+      let pc = pdim[0][2] / size
+      let pr = pdim[0][3] / size
+
       for (let i = 0; i < panels.length; i++) {
         let panel = panels[i]
         let detected = record[panel_keys[i]]
+
+        let p1x, p1y
         // TP FP TN FN
         if (detected > 0.1) {
+          let n = panels[i][0] + panels[i][1]
+          p1y = (pr - (n % pr) - 1) * size
+          p1x = Math.floor(n / pr) * size
           if (anomaly) {
             // true pos
             panels[i][0]++
@@ -212,6 +257,9 @@ export default function Index() {
             panels[i][1]++
           }
         } else {
+          let n = panels[i][2] + panels[i][3]
+          p1y = (pr - (n % pr) - 1) * size
+          p1x = (pc - Math.floor(n / pr) - 1) * size - 1
           if (anomaly) {
             // false neg
             panels[i][3]++
@@ -220,6 +268,9 @@ export default function Index() {
             panels[i][2]++
           }
         }
+
+        let dim = pdim[i]
+        vx.fillRect(dim[0] + p1x, dim[1] + p1y, size + 1, size + 1)
 
         for (let j = 0; j < 4; j++) {
           $read.childNodes[i].childNodes[j].childNodes[1].innerHTML = panel[j]
@@ -243,13 +294,22 @@ export default function Index() {
         panels[i][6] = recall
       }
 
+      let vheight = v.height / dpr
+      let [tw, th] = tdim_ref.current
+      vx.clearRect(0, vheight - rlh * 2 - 1, tw, rlh + 2)
+      let split = truth[1] / (truth[0] + truth[1])
+      vx.fillStyle = red
+      vx.fillRect(0, vheight - rlh * 1.5, tw - tw * split, rlh)
+      vx.fillStyle = scheme.bg
+      vx.fillRect(tw - tw * split - 1, vheight - rlh * 1.5, tw * split, rlh)
+
       // set rankings
       {
         let $rs = rankref.current.childNodes
         let s = sref.current
         let sx = s.getContext('2d')
         sx.fillStyle = scheme.fg
-        sx.clearRect(0, 0, s.width, s.height)
+        sx.clearRect(0, 0, s.width / dpr, s.height / dpr)
 
         let rank_rows = names.map((n, i) => {
           let panel = panels[i]
@@ -273,7 +333,7 @@ export default function Index() {
           $r.childNodes[3].childNodes[0].innerHTML = row[4] + '% '
           $r.childNodes[3].childNodes[1].innerHTML = `${TP}/(${TP}+${FN})`
 
-          let xstep = s.width / 4
+          let xstep = s.width / dpr / 4
           for (let c = 0; c < 3; c++) {
             let x = (c + 1) * xstep
             let y = i * rlh
@@ -282,11 +342,25 @@ export default function Index() {
             sx.fillRect(x, y, w, h)
           }
         }
+
+        let icon = icon_ref.current
+        let ix = icon.getContext('2d')
+        ix.clearRect(0, 0, cw, rlh)
+        let step = (rlh * 1.5) / 4
+        for (let i = 0; i < rank_rows.length; i++) {
+          let row = rank_rows[i]
+          let y = i * step
+          ix.fillStyle = bgs[row[0]]
+          ix.fillRect(0, y, cw, step)
+        }
       }
     }
   }, [data, frame])
 
   useEffect(() => {
+    let dpr = window.devicePixelRatio || 1
+    setDpr(dpr)
+
     let p = pref.current
     let pspace = p.offsetWidth
     let pleft = p.offsetLeft
@@ -305,6 +379,49 @@ export default function Index() {
     <div>
       <div style={{ paddingLeft: '1ch', paddingRight: '1ch' }}>
         <div ref={pref} />
+      </div>
+      <div
+        style={{
+          background: '#bbb',
+          height: rlh,
+          position: 'sticky',
+          top: 0,
+          zIndex: 999,
+        }}
+      >
+        <div
+          ref={topbar_ref}
+          style={{
+            display: 'flex',
+            paddingLeft: '1ch',
+          }}
+        >
+          <canvas
+            ref={icon_ref}
+            style={{
+              position: 'absolute',
+              left: 0,
+              top: 0,
+              height: rlh * 1.5,
+              width: '11ch',
+              display: 'none',
+            }}
+          />
+          <div
+            style={{
+              position: 'relative',
+              letterSpacing: '0.5ch',
+              marginRight: '1ch',
+            }}
+          >
+            ANOMAL
+          </div>
+          <div style={{ display: 'flex' }}>
+            <button>Info</button>
+            <div style={{ marginLeft: '1ch' }}>{'Speed:<012345678>'}</div>
+            <button>{'Pause'}</button>
+          </div>
+        </div>
       </div>
       {data ? (
         <div>
@@ -352,36 +469,39 @@ export default function Index() {
                   background: scheme.bg,
                   color: scheme.fg,
                   paddingRight: '1ch',
-                  height: rlh * 5,
+                  height: rlh * 4,
                 }}
               >
-                {data.data.slice(frame - 5, frame).map((d, i) => (
-                  <div
-                    style={{
-                      display: 'flex',
-                    }}
-                  >
-                    {d.slice(0, 19).map((d, j) => (
-                      <div
-                        style={{
-                          display: 'flex',
-                          paddingLeft: '1ch',
-                          flexGrow: 1,
-                        }}
-                      >
+                {data.data
+                  .slice(frame - 4, frame)
+                  .reverse()
+                  .map((d, i) => (
+                    <div
+                      style={{
+                        display: 'flex',
+                      }}
+                    >
+                      {d.slice(0, 19).map((d, j) => (
                         <div
                           style={{
-                            width: '5ch',
-                            overflow: 'hidden',
-                            textAlign: 'right',
+                            display: 'flex',
+                            paddingLeft: '1ch',
+                            flexGrow: 1,
                           }}
                         >
-                          {j === 0 ? frame + i : d}
+                          <div
+                            style={{
+                              width: '5ch',
+                              overflow: 'hidden',
+                              textAlign: 'right',
+                            }}
+                          >
+                            {j === 0 ? frame + i : d}
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                ))}
+                      ))}
+                    </div>
+                  ))}
               </div>
             </div>
           </div>
@@ -395,9 +515,9 @@ export default function Index() {
             STRATEGIES
           </div>
           <div
+            ref={ranklabel_ref}
             style={{
-              paddingLeft: '1ch',
-              paddingRight: '1ch',
+              marginLeft: '1ch',
               fontStyle: 'italic',
               display: 'flex',
             }}
@@ -432,8 +552,10 @@ export default function Index() {
                     <div style={{ width: '100%' }}>
                       <span
                         style={{
-                          paddingTop: 1,
-                          paddingBottom: 1,
+                          display: 'inline-block',
+                          marginRight: '0.5ch',
+                          paddingLeft: '0.5ch',
+                          paddingRight: '0.5ch',
                         }}
                       ></span>
                       <span style={{ color: scheme.light }}></span>
@@ -460,7 +582,15 @@ export default function Index() {
               ref={title_ref}
             >
               {names.map((n, i) => (
-                <div style={{ background: bgs[i] }}>{n}</div>
+                <div
+                  style={{
+                    background: bgs[i],
+                    paddingLeft: '0.5ch',
+                    paddingRight: '0.5ch',
+                  }}
+                >
+                  {n}
+                </div>
               ))}
             </div>
             <div
@@ -510,14 +640,7 @@ export default function Index() {
                 position: 'absolute',
               }}
             >
-              <div
-                style={{
-                  background: scheme.bg,
-                  color: scheme.fg,
-                }}
-              >
-                Truth
-              </div>
+              <div style={{}}>DATA BALANCE</div>
             </div>
             <div
               ref={treadout_ref}
@@ -527,25 +650,21 @@ export default function Index() {
               }}
             >
               <div style={{ width: '100%' }}>
-                <div style={{ background: scheme.fg, fontStyle: 'italic' }}>
-                  Positive
-                </div>
+                <div style={{ fontStyle: 'italic' }}>Anomalies</div>
                 <div
                   style={{
-                    background: red,
                     color: 'white',
-                    paddingRight: '1ch',
-                    textAlign: 'right',
+                    paddingLeft: '1ch',
+                    textAlign: 'left',
                   }}
                 ></div>
               </div>
               <div style={{ width: '100%' }}>
-                <div style={{ background: scheme.fg, fontStyle: 'italic' }}>
-                  Negative
+                <div style={{ fontStyle: 'italic', textAlign: 'right' }}>
+                  Normal
                 </div>
                 <div
                   style={{
-                    background: black,
                     color: 'white',
                     paddingRight: '1ch',
                     textAlign: 'right',
@@ -553,6 +672,18 @@ export default function Index() {
                 ></div>
               </div>
             </div>
+          </div>
+          <div
+            style={{
+              paddingLeft: '1ch',
+              paddingRight: '1ch',
+              marginTop: rlh / 2,
+              textAlign: 'center',
+              marginBottom: rlh / 2,
+            }}
+          >
+            Anomal is an anomaly detection prototype by{' '}
+            <a href="#">Cloudera Fast Forward</a>.
           </div>
         </div>
       ) : (
@@ -615,6 +746,16 @@ export default function Index() {
         }
         #__next-prerender-indicator {
           display: none;
+        }
+        button {
+          font-family: inherit;
+          color: inherit;
+          text-decoration: underline;
+          background: none;
+          border: none;
+          padding: 0;
+          margin: 0;
+          cursor: pointer;
         }
       `}</style>
     </div>
