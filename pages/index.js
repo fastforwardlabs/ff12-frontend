@@ -7,13 +7,14 @@ import React, {
 } from 'react'
 import Head from 'next/head'
 import Agent from '../components/agent'
-import { color } from '../components/constants'
+import { key_des } from '../components/constants'
 import * as _ from 'lodash'
 
 let scheme = {
   name: 'Paraiso Dark',
   bg: '#2f1e2e',
-  fg: '#bbb',
+  fg: '#bfbfbf',
+  light: '#777',
   hues: ['#ef6155', '#48b685', '#fec418', '#06b6ef', '#815ba4', '#5bc4bf'],
 }
 let red = scheme.hues[0]
@@ -22,521 +23,541 @@ let yellow = scheme.hues[2]
 let teal = scheme.hues[3]
 let blue = scheme.hues[4]
 let purple = scheme.hues[5]
+let bgs = [yellow, teal, green, blue]
+let black = scheme.bg
 
 let fs = 13
 let lh = 1.5
 let ch = 9.599990844726562
+let cw = 8
 let rlh = fs * lh
 let cell = { w: ch, h: rlh / 2 }
 
-let top_lines = 70
-let frames = 6
-let interval = frames / 2
-
 let names = [
   'Autoencoder',
-  'Variational Autoencoder',
+  'Var. Autoencoder',
   'Autoencoder',
-  'Variational Autoencoder',
+  'Var. Autoencoder',
 ]
-let bgs = [yellow, teal, green, blue]
-let short_names = ['AE', 'VAE', 'AE', 'VAE']
-
-let id = 0
-let sx = 0
-let sy = 0
-let sd = 1
-let sm = 1
 
 let size = 4
 
-let panel_number = 4
-let panels = [...Array(panel_number)].map(n => [0, 0, 0, 0])
-
 let sort_options = ['accuracy', 'precision', 'recall']
 
-export default function Index() {
-  let [counter, setCounter] = useState(-1)
-  let si = useRef(0)
-  let [flow, setFlow] = useState([])
-  let [samples, setSamples] = useState(null)
-  let [keys, setKeys] = useState(null)
-  let handler_ref = useRef(null)
-  let canvas_ref = useRef(null)
-  let readouts_ref = useRef([...Array(panel_number)].map(() => createRef()))
-  let titles_ref = useRef([...Array(panel_number)].map(() => createRef()))
-  let borders_ref = useRef([...Array(panel_number)].map(() => createRef()))
-  let [sort, setSort] = useState(sort_options[0])
-  let pcpr_ref = useRef(null)
-  let panels_ref = useRef(null)
-  let rankings_ref = useRef(null)
-  let cr_ref = useRef(null)
-
-  useEffect(() => {
-    let c = canvas_ref.current
-    let columns = Math.floor(c.offsetWidth / size)
-
-    if (counter % interval === 0 && si.current < 10000 - 1) {
-      setFlow(function(prev) {
-        // make sure counter is not skipping numbers...
-        let sample = samples[si.current]
-        prev.unshift(sample)
-
-        let anomaly = sample[19] === 1 ? true : false
-
-        // check if anomaly
-        let ctx = c.getContext('2d')
-        if (anomaly) {
-          ctx.fillStyle = red
-        } else {
-          ctx.fillStyle = scheme.bg
-        }
-
-        let [pc, pr] = pcpr_ref.current
-
-        let [p1, p2, p3, p4] = panels_ref.current
-        let tp = [p1, p2, p3, p4]
-
-        for (let p of tp) {
-          // ctx.fillStyle = 'pink'
-          // ctx.fillRect(...p)
-        }
-
-        let panel_data = [p1, p2, p3, p4]
-        let panel_keys = [21, 20, 21, 20]
-        for (let i = 0; i < panel_data.length; i++) {
-          let pan = panel_data[i]
-          let detected = sample[panel_keys[i]]
-          if (si.current < 100) {
-            console.log(detected)
-          }
-          let p1x, p1y
-          if (detected > 0.1) {
-            let n = panels[i][0] + panels[i][1]
-            p1y = pr - (n % pr) - 1
-            p1x = Math.floor(n / pr)
-            if (anomaly) {
-              // true pos
-              panels[i][0]++
-            } else {
-              // false pos
-              panels[i][1]++
-            }
-          } else {
-            let n = panels[i][2] + panels[i][3]
-            p1y = pr - (n % pr) - 1
-            p1x = pc - Math.floor(n / pr) - 1
-            if (anomaly) {
-              // false neg
-              panels[i][3]++
-            } else {
-              // true neg
-              panels[i][2]++
-            }
-          }
-          ctx.fillRect(
-            pan[0] + p1x * size,
-            pan[1] + p1y * size,
-            size + 1,
-            size + 1
-          )
-        }
-
-        let readouts = readouts_ref.current
-
-        let accuracies = []
-        for (let i = 0; i < readouts.length; i++) {
-          let $r = readouts[i].current
-          let r0 = $r.childNodes[1].childNodes
-          let r1 = $r.childNodes[0].childNodes
-
-          // tp 0, fp 1, tn 2, fn 3
-
-          // precision tp / (tp + fp)
-          let precision = Math.round(
-            (panels[i][0] / (panels[i][0] + panels[i][1])) * 100
-          )
-          r0[0].childNodes[1].innerText = precision + '%'
-
-          //Accuracy = (TP+TN)/(TP+TN+FP+FN)
-          let accuracy = Math.round(
-            ((panels[i][0] + panels[i][2]) /
-              (panels[i][0] + panels[i][1] + panels[i][2] + panels[i][3])) *
-              100
-          )
-          r0[1].childNodes[1].innerText = accuracy + '%'
-
-          // recall tp / (tp + fn)
-          let recall = Math.round(
-            (panels[i][0] / (panels[i][0] + panels[i][3])) * 100
-          )
-          r0[2].childNodes[1].innerText = recall + '%'
-
-          accuracies.push([i, accuracy, precision, recall])
-
-          r1[0].childNodes[1].innerText = panels[i][0]
-          r1[1].childNodes[1].innerText = panels[i][1]
-          r1[3].childNodes[1].innerText = panels[i][2]
-          r1[4].childNodes[1].innerText = panels[i][3]
-        }
-
-        let cr = cr_ref.current
-        let crx = cr.getContext('2d')
-        cr.width = window.innerWidth - ch * 2
-        cr.height = rlh * 4
-
-        let ranking = rankings_ref.current
-        let sorti = sort_options.indexOf(sort)
-        accuracies.sort(function(a, b) {
-          return b[sorti + 1] - a[sorti + 1]
-        })
-
-        let crstep = cr.width / 4
-        crx.clearRect(0, 0, cr.with, cr.height)
-        crx.fillStyle = scheme.fg
-        for (let a = 0; a < accuracies.length; a++) {
-          let p = accuracies[a]
-          let y = a * rlh
-          for (let cra = 0; cra < 3; cra++) {
-            let x = cra * crstep + crstep
-            let y = a * rlh
-            // crx.fillStyle = bgs[p[0]]
-            crx.fillRect(x, y - 1, (p[cra + 1] / 100) * crstep, rlh + 2)
-          }
-        }
-
-        ranking.innerHTML = accuracies
-          .map(
-            (p, i) => `<div style="display: flex; position: relative;">
-            <div style="position: absolute; left: -0.5px; top: -0.5px; height: ${rlh +
-              1}px;
-            border: solid 1px #bbb; display: none;  width: ${pc * size * 2 +
-              ch * 2 +
-              1}px;
-            "></div>
-              <div style="width: 100%;"><span style="position: relative; display: inline-block; background: ${
-                bgs[p[0]]
-              }; padding-right: 0.5ch; padding-left: 0.5ch;">${
-              names[p[0]]
-            }</div> 
-              <div style="width: 100%;">${p[1]}%</div>
-              <div style="width: 100%;">${p[2]}%</div>
-              <div style="width: 100%;">${p[3]}%</div>
-            </div>`
-          )
-          .join(' ')
-
-        id++
-        return prev
-      })
-      si.current = si.current + 1
-
-      if (si.current >= 10000) {
-        if (handler_ref.current !== null) clearInterval(handler_ref.current)
-      }
+let rInterval = function(callback, delay) {
+  var dateNow = Date.now,
+    requestAnimation = window.requestAnimationFrame,
+    start = dateNow(),
+    stop,
+    intervalFunc = function() {
+      dateNow() - start < delay || ((start += delay), callback())
+      stop || requestAnimation(intervalFunc)
     }
-  }, [samples, counter, sort])
+  requestAnimation(intervalFunc)
+  return {
+    clear: function() {
+      stop = 1
+    },
+  }
+}
+
+export default function Index() {
+  let [data, setData] = useState(null)
+  let handler_ref = useRef(null)
+  let pref = useRef(null)
+  let sref = useRef(null)
+  let vref = useRef(null)
+  let rankref = useRef(null)
+  let [frame, setFrame] = useState(0)
+  let [pspace, setPspace] = useState(null)
+  let [pleft, setPleft] = useState(null)
+  let panels_ref = useRef([...Array(4)].map(n => [...Array(4)].map(n => 0)))
+  let title_ref = useRef(null)
+  let readout_ref = useRef(null)
+  let truth_ref = useRef([0, 0])
+  let treadout_ref = useRef(null)
+  let truthtitle_ref = useRef(null)
 
   useEffect(() => {
-    // assumes only set once
-    if (samples !== null) {
-      handler_ref.current = setInterval(() => {
-        setCounter(function(prev) {
+    if (data !== null) {
+      // set layout
+      let v = vref.current
+      v.width = pspace - 8
+      v.style.marginLeft = pleft + 'px'
+      let vx = v.getContext('2d')
+
+      let columns = Math.floor(v.width / size)
+      let panel_columns = Math.floor(
+        Math.floor((v.width - size * 4) / size) / 2
+      )
+      let panel_rows = Math.ceil(10000 / (panel_columns - 1))
+
+      let pw = panel_columns * size
+      let ph = panel_rows * size
+
+      let pc = 2
+      let pr = 2
+
+      let top = rlh
+      let bottom = rlh * 2
+      let bottom_space = rlh / 2
+
+      let tc = panel_columns * 2 + 4
+      let tr = Math.ceil(10000 / (columns - 1))
+      let tw = tc * size
+      let th = tr * size
+
+      v.height =
+        (top + ph + bottom + bottom_space) * 2 +
+        top +
+        th +
+        bottom +
+        bottom_space
+
+      let $rank = rankref.current
+      $rank.style.width = tw + 'px'
+      $rank.style.left = pleft + 'px'
+      let s = sref.current
+      s.width = tw
+      s.height = rlh * 4
+
+      vx.fillStyle = '#eee'
+      for (let r = 0; r < pr; r++) {
+        for (let c = 0; c < pc; c++) {
+          let x = c * (pw + size * 4)
+          let y = r * (top + ph + bottom + bottom_space) + top
+          let w = pw
+          let h = ph
+          vx.fillRect(x, y, w, h)
+        }
+      }
+
+      vx.fillRect(0, 2 * (top + ph + bottom + bottom_space) + top, tw, th)
+
+      let $titles = title_ref.current
+      for (let r = 0; r < pr; r++) {
+        for (let c = 0; c < pc; c++) {
+          let $t = $titles.childNodes[r * pc + c]
+          $t.style.position = 'absolute'
+          $t.style.top = r * (top + ph + bottom + bottom_space) + 'px'
+          $t.style.width = pw + 'px'
+          $t.style.left = c * (pw + size * 4) + cw + 'px'
+        }
+      }
+
+      let tt = truthtitle_ref.current
+      tt.style.width = tw + 'px'
+      tt.style.left = cw + 'px'
+      tt.style.top = 2 * (top + ph + bottom + bottom_space) + 'px'
+
+      let $read = readout_ref.current
+      for (let r = 0; r < pr; r++) {
+        for (let c = 0; c < pc; c++) {
+          let $r = $read.childNodes[r * pc + c]
+          $r.style.position = 'absolute'
+          $r.style.top =
+            r * (top + ph + bottom + bottom_space) + top + ph + 'px'
+          $r.style.width = pw + 'px'
+          $r.style.left = c * (pw + size * 4) + cw + 'px'
+        }
+      }
+
+      let tre = treadout_ref.current
+      tre.style.width = tw + 'px'
+      tre.style.left = cw + 'px'
+      tre.style.top = 2 * (top + ph + bottom + bottom_space) + th + rlh + 'px'
+
+      handler_ref.current = rInterval(() => {
+        setFrame(function(prev) {
           return prev + 1
         })
-      }, 10)
+      }, 80)
     } else {
-      if (handler_ref.current !== null) clearInterval(handler_ref.current)
+      if (handler_ref.current !== null) {
+        handler_ref.current.clear()
+      }
     }
-  }, [samples])
+  }, [data])
 
   useEffect(() => {
+    if (data !== null) {
+      let panels = panels_ref.current
+      let $read = readout_ref.current
+      let truth = truth_ref.current
+      let $truth = treadout_ref.current
+
+      // update panel data
+      let panel_keys = [21, 20, 21, 20]
+      let record = data.data[frame]
+      let anomaly = record[19] === 1 ? true : false
+
+      if (anomaly) {
+        truth[0]++
+      } else {
+        truth[1]++
+      }
+      $truth.childNodes[0].childNodes[1].innerHTML = truth[0]
+      $truth.childNodes[1].childNodes[1].innerHTML = truth[1]
+
+      for (let i = 0; i < panels.length; i++) {
+        let panel = panels[i]
+        let detected = record[panel_keys[i]]
+        // TP FP TN FN
+        if (detected > 0.1) {
+          if (anomaly) {
+            // true pos
+            panels[i][0]++
+          } else {
+            // false pos
+            panels[i][1]++
+          }
+        } else {
+          if (anomaly) {
+            // false neg
+            panels[i][3]++
+          } else {
+            // true neg
+            panels[i][2]++
+          }
+        }
+
+        for (let j = 0; j < 4; j++) {
+          $read.childNodes[i].childNodes[j].childNodes[1].innerHTML = panel[j]
+        }
+
+        //accuracy = (TP+TN)/(TP+TN+FP+FN)
+        let accuracy = Math.round(
+          ((panel[0] + panel[2]) /
+            (panel[0] + panel[1] + panel[2] + panel[3])) *
+            100
+        )
+        // precision tp / (tp + fp)
+        let precision = Math.round((panel[0] / (panel[0] + panel[1])) * 100)
+
+        // recall tp / (tp + fn)
+        let recall = Math.round((panel[0] / (panel[0] + panel[3])) * 100)
+
+        // 4 5 6
+        panels[i][4] = accuracy
+        panels[i][5] = precision
+        panels[i][6] = recall
+      }
+
+      // set rankings
+      {
+        let $rs = rankref.current.childNodes
+        let s = sref.current
+        let sx = s.getContext('2d')
+        sx.fillStyle = scheme.fg
+        sx.clearRect(0, 0, s.width, s.height)
+
+        let rank_rows = names.map((n, i) => {
+          let panel = panels[i]
+          return [i, n, panel[4], panel[5], panel[6]]
+        })
+        rank_rows.sort(function(a, b) {
+          return b[2] - a[2]
+        })
+        for (let i = 0; i < rank_rows.length; i++) {
+          let row = rank_rows[i]
+          let panel = panels[row[0]]
+          let [TP, FP, TN, FN] = panel
+          let $r = $rs[i]
+          let total = panel[0] + panel[1] + panel[2] + panel[3]
+          $r.childNodes[0].childNodes[0].style.background = bgs[row[0]]
+          $r.childNodes[0].childNodes[0].innerHTML = row[1]
+          $r.childNodes[1].childNodes[0].innerHTML = row[2] + '% '
+          $r.childNodes[1].childNodes[1].innerHTML = `(${TP}+${TN})/${total}`
+          $r.childNodes[2].childNodes[0].innerHTML = row[3] + '% '
+          $r.childNodes[2].childNodes[1].innerHTML = `${TP}/(${TP}+${FP})`
+          $r.childNodes[3].childNodes[0].innerHTML = row[4] + '% '
+          $r.childNodes[3].childNodes[1].innerHTML = `${TP}/(${TP}+${FN})`
+
+          let xstep = s.width / 4
+          for (let c = 0; c < 3; c++) {
+            let x = (c + 1) * xstep
+            let y = i * rlh
+            let w = (row[c + 2] / 100) * xstep - cw
+            let h = rlh + 1
+            sx.fillRect(x, y, w, h)
+          }
+        }
+      }
+    }
+  }, [data, frame])
+
+  useEffect(() => {
+    let p = pref.current
+    let pspace = p.offsetWidth
+    let pleft = p.offsetLeft
+    setPspace(pspace)
+    setPleft(pleft)
+
+    // get data
     fetch('sampled.json')
       .then(r => r.json())
-      .then(data => {
-        let c = canvas_ref.current
-        c.style.top = '0px'
-        c.width = window.innerWidth
-        let ctx = c.getContext('2d')
-
-        // ctx.fillStyle = '#ddd'
-        // ctx.fillRect(0, 0, c.width, c.height)
-
-        let columns = Math.floor((c.offsetWidth - 4 * ch) / size)
-
-        let panel_columns = Math.floor(columns / 2)
-        let panel_rows = Math.ceil(10000 / (panel_columns - 1))
-
-        let pc = panel_columns
-        let pr = panel_rows
-        pcpr_ref.current = [pc, pr]
-
-        let p1 = [ch, rlh, panel_columns * size + 1, panel_rows * size + 1]
-        let p2 = [
-          ch * 3 + panel_columns * size,
-          rlh,
-          panel_columns * size + 1,
-          panel_rows * size + 1,
-        ]
-        let p3 = [
-          ch,
-          rlh + pr * size + 4 * rlh,
-          panel_columns * size + 1,
-          panel_rows * size + 1,
-        ]
-        let p4 = [
-          ch * 3 + panel_columns * size,
-          rlh + pr * size + 4 * rlh,
-          panel_columns * size + 1,
-          panel_rows * size + 1,
-        ]
-
-        let panels = [p1, p2, p3, p4]
-        panels_ref.current = panels
-
-        c.height = p4[1] + p4[3] + 4 * rlh
-
-        let borders = borders_ref.current
-
-        for (let panel of panels) {
-          // ctx.fillStyle = scheme.fg
-          // ctx.fillRect(
-          //   panel[0] - 0.5,
-          //   panel[1] - rlh - 0.5,
-          //   panel[2] + 1,
-          //   panel[3] + rlh * 5 + 1
-          // )
-          // ctx.strokeRect(
-          //   panel[0] - 0.5,
-          //   panel[1] - rlh - 0.5,
-          //   panel[2] + 1,
-          //   panel[3] + rlh * 5 + 1
-          // // )
-          ctx.fillStyle = '#ccc'
-          ctx.fillRect(panel[0], panel[1], panel[2], panel[3] + 1)
-        }
-
-        let titles = titles_ref.current
-        let readouts = readouts_ref.current
-        for (let i = 0; i < readouts.length; i++) {
-          let $readout = readouts[i].current
-          let panel = panels[i]
-          $readout.style.position = 'absolute'
-          $readout.style.left = panel[0] + 'px'
-          $readout.style.top = panel[1] + panel[3] - 4 * rlh + 4 * rlh + 'px'
-          $readout.style.width = panel[2] + 'px'
-
-          let $title = titles[i].current
-          $title.style.position = 'absolute'
-          $title.style.left = panel[0] + 'px'
-          $title.style.top = panel[1] - rlh + 'px'
-          $title.style.width = panel[2] + 'px'
-          $title.style.textAlign = 'center'
-
-          let $border = borders[i].current
-          $border.style.position = 'absolute'
-          $border.style.left = panel[0] - 1 + 'px'
-          $border.style.top = panel[1] - rlh + 'px'
-          $border.style.width = panel[2] + 2 + 'px'
-          $border.style.height = panel[3] + rlh * 3 + 2 + 'px'
-          $border.style.border = 'solid 2px ' + bgs[i]
-          $border.style.borderTop = 'none'
-        }
-
-        setKeys(data.keys)
-        setSamples(data.data)
+      .then(_data => {
+        setData(_data)
       })
   }, [])
 
   return (
     <div>
-      <Head>
-        <title>Failsafe</title>
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
-
-      <div style={{ paddingLeft: '1ch', marginTop: rlh / 4 }}>CONNECTIONS</div>
-      <div style={{}}>
-        <div
-          style={{ height: rlh * 4, background: scheme.bg, overflow: 'hidden' }}
-        >
-          {flow.slice(0, 5).map((o, i) => (
-            <div
-              style={{
-                position: 'relative',
-                paddingLeft: '1ch',
-                paddingRight: '1ch',
-                color: 'white',
-                height: fs * lh,
-                display: 'flex',
-              }}
-            >
-              <div style={{ width: '100%', textAlign: 'right' }}>{counter}</div>
-              {o.slice(1, 19).map(v => (
-                <div style={{ width: '100%', textAlign: 'right' }}>{v}</div>
-              ))}
-            </div>
-          ))}
-        </div>
-
-        <div style={{ marginTop: rlh / 4 + 2, position: 'relative' }}>
-          <div style={{ paddingLeft: '1ch', paddingRight: '1ch' }}>
-            <div
-              style={{
-                display: 'flex',
-              }}
-            >
-              <div
-                style={{
-                  width: '100%',
-                }}
-              >
-                STRATEGY RANKINGS
-              </div>
-              {sort_options.map(o => (
-                <div
-                  style={{
-                    width: '100%',
-                    // background: o === sort ? scheme.bg : 'white',
-                    // color: o === sort ? 'white' : scheme.bg,
-                    textDecoration: o !== sort ? 'underline' : 'none',
-                    cursor: o !== sort ? 'pointer' : 'default',
-                  }}
-                  onClick={() => {
-                    setSort(o)
-                  }}
-                >
-                  {o}
-                </div>
-              ))}
-            </div>
-          </div>
-          <canvas
-            ref={cr_ref}
-            style={{ position: 'absolute', left: ch, bottom: 0 }}
-          />
+      <div style={{ paddingLeft: '1ch', paddingRight: '1ch' }}>
+        <div ref={pref} />
+      </div>
+      {data ? (
+        <div>
           <div
-            ref={rankings_ref}
             style={{
               paddingLeft: '1ch',
               paddingRight: '1ch',
-              position: 'relative',
+              marginTop: rlh / 2,
+              display: 'flex',
             }}
-          />
-        </div>
+          >
+            <div>CONNECTIONS</div>
+            <div style={{ marginLeft: '1ch' }}>
+              <span style={{ color: '#777' }}>{frame}</span>
+            </div>
+          </div>
+          <div style={{ width: '100%', overflow: 'auto' }}>
+            <div style={{ width: '100%', minWidth: 6 * 19 + 1 + 'ch' }}>
+              <div style={{ display: 'flex', paddingRight: '1ch' }}>
+                {key_des.map((k, i) => (
+                  <div
+                    style={{
+                      display: 'flex',
+                      paddingLeft: '1ch',
+                      flexGrow: 1,
+                    }}
+                    title={k[0] + ': ' + k[2]}
+                  >
+                    <div
+                      style={{
+                        width: '5ch',
+                        overflow: 'hidden',
+                        textAlign: 'right',
+                        fontStyle: 'italic',
+                      }}
+                    >
+                      {k[1]}
+                    </div>
+                  </div>
+                ))}
+              </div>
 
-        <div style={{ paddingLeft: '1ch', marginTop: rlh / 4 }}>STRATEGIES</div>
-        <div style={{ position: 'relative' }}>
-          <canvas ref={canvas_ref} style={{ position: 'relative' }} />
-
-          <div style={{ position: 'absolute', left: 0, top: 0 }}>
-            {names.map((n, i) => [
               <div
-                ref={titles_ref.current[i]}
                 style={{
-                  background: bgs[i],
+                  background: scheme.bg,
+                  color: scheme.fg,
+                  paddingRight: '1ch',
+                  height: rlh * 5,
                 }}
               >
-                {n}
-              </div>,
-              <div ref={readouts_ref.current[i]} style={{}}>
-                <div
-                  style={{
-                    display: 'flex',
-                    position: 'relative',
-                  }}
-                >
-                  {[
-                    ['true pos', red],
-                    ['false pos', scheme.bg],
-                    ['spacer'],
-                    ['true neg', scheme.bg],
-                    ['false neg', red],
-                  ].map((o, i2) => {
-                    return o[0] === 'spacer' ? (
-                      <div style={{ width: ch }}>
-                        <div
-                          style={{ width: ch, height: rlh, background: '#ccc' }}
-                        />
-                        <div
-                          style={{ width: ch, height: rlh, background: '#ccc' }}
-                        />
-                      </div>
-                    ) : (
+                {data.data.slice(frame - 5, frame).map((d, i) => (
+                  <div
+                    style={{
+                      display: 'flex',
+                    }}
+                  >
+                    {d.slice(0, 19).map((d, j) => (
                       <div
                         style={{
-                          textAlign: 'center',
+                          display: 'flex',
+                          paddingLeft: '1ch',
                           flexGrow: 1,
-                          background: '#aaa',
-                          // color: 'white',
                         }}
                       >
-                        <div style={{ fontStyle: 'italic' }}>{o[0]}</div>
                         <div
                           style={{
-                            background: o[1],
-                            color: 'white',
+                            width: '5ch',
+                            overflow: 'hidden',
+                            textAlign: 'right',
                           }}
                         >
-                          0
+                          {j === 0 ? frame + i : d}
                         </div>
                       </div>
-                    )
-                  })}
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div
+            style={{
+              paddingLeft: '1ch',
+              paddingRight: '1ch',
+              marginTop: rlh / 2,
+            }}
+          >
+            STRATEGIES
+          </div>
+          <div
+            style={{
+              paddingLeft: '1ch',
+              paddingRight: '1ch',
+              fontStyle: 'italic',
+              display: 'flex',
+            }}
+          >
+            <div style={{ width: '100%' }}>Ranking</div>
+            {[
+              ['Accuracy', '(TP+TN)/ALL'],
+              ['Precision', 'TP/(TP+FP)'],
+              ['Recall', 'TP/(TP+FN)'],
+            ].map(n => (
+              <div style={{ width: '100%' }}>
+                {n[0]}{' '}
+                <span style={{ color: scheme.light, fontStyle: 'normal' }}>
+                  {n[1]}
+                </span>
+              </div>
+            ))}
+          </div>
+          <div
+            style={{
+              position: 'relative',
+            }}
+          >
+            <canvas
+              style={{ position: 'absolute', left: '1ch', top: 0 }}
+              ref={sref}
+            />
+            <div ref={rankref} style={{ position: 'relative' }}>
+              {names.map((n, i) => (
+                <div style={{ display: 'flex' }}>
+                  {[...Array(4)].map((n, j) => (
+                    <div style={{ width: '100%' }}>
+                      <span
+                        style={{
+                          paddingTop: 1,
+                          paddingBottom: 1,
+                        }}
+                      ></span>
+                      <span style={{ color: scheme.light }}></span>
+                    </div>
+                  ))}
                 </div>
+              ))}
+            </div>
+          </div>
+          <div
+            style={{
+              paddingLeft: '1ch',
+              paddingRight: '1ch',
+              marginTop: rlh / 2,
+            }}
+          >
+            VISUALIZED
+          </div>
 
-                <div
-                  style={{
-                    display: 'flex',
-                    position: 'relative',
-                    display: 'none',
-                  }}
-                >
+          <div style={{ position: 'relative' }}>
+            <canvas ref={vref} style={{ left: 0, top: 0 }} />
+            <div
+              style={{ position: 'absolute', left: 0, top: 0 }}
+              ref={title_ref}
+            >
+              {names.map((n, i) => (
+                <div style={{ background: bgs[i] }}>{n}</div>
+              ))}
+            </div>
+            <div
+              style={{
+                position: 'absolute',
+                left: 0,
+                top: 0,
+              }}
+              ref={readout_ref}
+            >
+              {[...Array(4)].map(() => (
+                <div style={{ display: 'flex' }}>
                   {[
-                    ['precision', '25%'],
-                    ['accuracy', '50%'],
-                    ['recall', '25%'],
-                  ].map(o => {
-                    return (
+                    ['True Pos', red],
+                    ['False Pos', black],
+                    ['True Neg', black],
+                    ['False Neg', red],
+                  ].map((o, i) => (
+                    <div
+                      style={{ width: '100%', marginLeft: i === 2 ? '1ch' : 0 }}
+                    >
                       <div
                         style={{
-                          textAlign: 'center',
-                          width: o[1],
+                          background: scheme.fg,
+                          fontStyle: 'italic',
                         }}
                       >
-                        <div>{o[0]}</div>
-                        <div
-                          style={{
-                            background: scheme.bg,
-                            color: 'white',
-                            // fontSize: fs * 1.25,
-                          }}
-                        >
-                          0
-                        </div>
+                        {o[0]}
                       </div>
-                    )
-                  })}
+                      <div
+                        style={{
+                          background: o[1],
+                          height: rlh,
+                          color: 'white',
+                          textAlign: 'right',
+                          paddingRight: '1ch',
+                        }}
+                      ></div>
+                    </div>
+                  ))}
                 </div>
-              </div>,
-              <div ref={borders_ref.current[i]} style={{}} />,
-            ])}
+              ))}
+            </div>
+            <div
+              ref={truthtitle_ref}
+              style={{
+                position: 'absolute',
+              }}
+            >
+              <div
+                style={{
+                  background: scheme.bg,
+                  color: scheme.fg,
+                }}
+              >
+                Truth
+              </div>
+            </div>
+            <div
+              ref={treadout_ref}
+              style={{
+                position: 'absolute',
+                display: 'flex',
+              }}
+            >
+              <div style={{ width: '100%' }}>
+                <div style={{ background: scheme.fg, fontStyle: 'italic' }}>
+                  Positive
+                </div>
+                <div
+                  style={{
+                    background: red,
+                    color: 'white',
+                    paddingRight: '1ch',
+                    textAlign: 'right',
+                  }}
+                ></div>
+              </div>
+              <div style={{ width: '100%' }}>
+                <div style={{ background: scheme.fg, fontStyle: 'italic' }}>
+                  Negative
+                </div>
+                <div
+                  style={{
+                    background: black,
+                    color: 'white',
+                    paddingRight: '1ch',
+                    textAlign: 'right',
+                  }}
+                ></div>
+              </div>
+            </div>
           </div>
         </div>
-        <div
-          style={{
-            position: 'fixed',
-            right: cell.w,
-            bottom: cell.h,
-            background: 'blue',
-            color: 'white',
-            display: 'none',
-          }}
-        >
-          counter {counter}
-        </div>
-      </div>
-
+      ) : (
+        <div>loading...</div>
+      )}
       <style global jsx>{`
         @font-face {
           font-family: 'custom';
@@ -558,6 +579,7 @@ export default function Index() {
           line-height: ${lh};
           background: #ddd;
           color: #000;
+          overflow-x: hidden;
         }
         body {
           margin: 0;
