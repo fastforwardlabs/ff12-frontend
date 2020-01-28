@@ -308,7 +308,6 @@ export default function Index() {
         let $rs = rankref.current.childNodes
         let s = sref.current
         let sx = s.getContext('2d')
-        sx.fillStyle = scheme.fg
         sx.clearRect(0, 0, s.width / dpr, s.height / dpr)
 
         let rank_rows = names.map((n, i) => {
@@ -333,12 +332,17 @@ export default function Index() {
           $r.childNodes[3].childNodes[0].innerHTML = row[4] + '% '
           $r.childNodes[3].childNodes[1].innerHTML = `${TP}/(${TP}+${FN})`
 
+          let y = i * rlh
+          let w = s.width / dpr
+          let h = rlh + 1
+          // sx.fillStyle = bgs[row[0]]
+          // sx.fillRect(0, y, w, h)
+
+          sx.fillStyle = scheme.fg
           let xstep = s.width / dpr / 4
           for (let c = 0; c < 3; c++) {
             let x = (c + 1) * xstep
-            let y = i * rlh
             let w = (row[c + 2] / 100) * xstep - cw
-            let h = rlh + 1
             sx.fillRect(x, y, w, h)
           }
         }
@@ -349,9 +353,11 @@ export default function Index() {
         let step = (rlh * 1.5) / 4
         for (let i = 0; i < rank_rows.length; i++) {
           let row = rank_rows[i]
+          let panel = panels[row[0]]
           let y = i * step
+          let w = (panel[4] / 100) * cw
           ix.fillStyle = bgs[row[0]]
-          ix.fillRect(0, y, cw, step)
+          ix.fillRect(0, y, w, step)
         }
       }
     }
@@ -393,7 +399,7 @@ export default function Index() {
           ref={topbar_ref}
           style={{
             display: 'flex',
-            paddingLeft: '1ch',
+            paddingLeft: '2ch',
           }}
         >
           <canvas
@@ -402,9 +408,8 @@ export default function Index() {
               position: 'absolute',
               left: 0,
               top: 0,
-              height: rlh * 1.5,
-              width: '11ch',
-              display: 'none',
+              height: rlh,
+              width: '1ch',
             }}
           />
           <div
@@ -416,41 +421,7 @@ export default function Index() {
           >
             ANOMAL
           </div>
-          <div style={{ display: 'flex' }}>
-            <button>Info</button>
-            <div
-              style={{
-                marginLeft: '1.25ch',
-                marginRight: '1.25ch',
-                display: 'flex',
-              }}
-            >
-              Speed:
-              {'012345678'.split('').map(i =>
-                i == 6 ? (
-                  <div
-                    style={{
-                      paddingLeft: '0.25ch',
-                      paddingRight: '0.25ch',
-                    }}
-                  >
-                    {i}
-                  </div>
-                ) : (
-                  <button
-                    style={{
-                      paddingLeft: '0.25ch',
-                      paddingRight: '0.25ch',
-                      color: scheme.light,
-                    }}
-                  >
-                    {i}
-                  </button>
-                )
-              )}
-            </div>
-            <button>{'Pause'}</button>
-          </div>
+          <button style={{}}>Info</button>
         </div>
       </div>
       {data ? (
@@ -714,6 +685,66 @@ export default function Index() {
           >
             Anomal is an anomaly detection prototype by{' '}
             <a href="#">Cloudera Fast Forward</a>.
+          </div>
+          <div
+            style={{
+              position: 'fixed',
+              left: 0,
+              bottom: 0,
+              right: 0,
+              height: rlh,
+              background: '#bbb',
+              paddingLeft: '1ch',
+              display: 'flex',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+              }}
+            >
+              <div>Speed:</div>
+              <button
+                style={{
+                  paddingLeft: '0.25ch',
+                  paddingRight: '0.25ch',
+                  marginLeft: '0.5ch',
+                }}
+              >
+                {'<'}
+              </button>
+              {'123456'.split('').map(i =>
+                i == 6 ? (
+                  <div
+                    style={{
+                      paddingLeft: '0.25ch',
+                      paddingRight: '0.25ch',
+                    }}
+                  >
+                    {i}
+                  </div>
+                ) : (
+                  <button
+                    style={{
+                      paddingLeft: '0.25ch',
+                      paddingRight: '0.25ch',
+                      color: scheme.light,
+                    }}
+                  >
+                    {i}
+                  </button>
+                )
+              )}
+              <button
+                style={{
+                  paddingLeft: '0.25ch',
+                  paddingRight: '0.25ch',
+                }}
+              >
+                {'>'}
+              </button>
+            </div>
+            <button style={{ marginLeft: '2ch' }}>{'Pause'}</button>
           </div>
         </div>
       ) : (
