@@ -5,12 +5,17 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "deploy": "rm -rf node_modules/.cache && rimraf out && next build && next export && touch out/.nojekyll && touch out/CNAME && echo \"anomal.fastforwardlabs.com\" >> out/CNAME && gh-pages -d out"
   },
   "dependencies": {
     "lodash": "^4.17.15",
     "next": "9.1.4",
     "react": "16.12.0",
     "react-dom": "16.12.0"
+  },
+  "devDependencies": {
+    "gh-pages": "^2.2.0",
+    "rimraf": "^3.0.1"
   }
 }
