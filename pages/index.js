@@ -418,7 +418,37 @@ export default function Index() {
           </div>
           <div style={{ display: 'flex' }}>
             <button>Info</button>
-            <div style={{ marginLeft: '1ch' }}>{'Speed:<012345678>'}</div>
+            <div
+              style={{
+                marginLeft: '1.25ch',
+                marginRight: '1.25ch',
+                display: 'flex',
+              }}
+            >
+              Speed:
+              {'012345678'.split('').map(i =>
+                i == 6 ? (
+                  <div
+                    style={{
+                      paddingLeft: '0.25ch',
+                      paddingRight: '0.25ch',
+                    }}
+                  >
+                    {i}
+                  </div>
+                ) : (
+                  <button
+                    style={{
+                      paddingLeft: '0.25ch',
+                      paddingRight: '0.25ch',
+                      color: scheme.light,
+                    }}
+                  >
+                    {i}
+                  </button>
+                )
+              )}
+            </div>
             <button>{'Pause'}</button>
           </div>
         </div>
