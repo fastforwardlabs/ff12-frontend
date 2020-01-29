@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "deploy": "rm -rf node_modules/.cache && rimraf out && next build && next export && touch out/.nojekyll && touch out/CNAME && echo \"anomal.fastforwardlabs.com\" >> out/CNAME && gh-pages -d out"
+    "deploy": "rm -rf node_modules/.cache && rimraf out && next build && next export && touch out/.nojekyll && touch out/CNAME && echo \"anomal.fastforwardlabs.com\" >> out/CNAME && git add out/ && git commit -m \"Deploy to gh-pages\" && git-directory-deploy --directory out --branch gh-pages"
   },
   "dependencies": {
     "lodash": "^4.17.15",
@@ -16,6 +16,7 @@
   },
   "devDependencies": {
     "gh-pages": "^2.2.0",
+    "git-directory-deploy": "^1.5.1",
     "rimraf": "^3.0.1"
   }
 }
