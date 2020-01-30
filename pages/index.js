@@ -787,9 +787,8 @@ export default function Index() {
             style={{
               paddingLeft: '1ch',
               paddingRight: '1ch',
-              marginTop: rlh / 2,
-              textAlign: 'center',
-              marginBottom: rlh + rlh,
+              marginTop: 0,
+              marginBottom: rlh / 2 + rlh,
             }}
           >
             Blip is an anomaly detection prototype by{' '}
