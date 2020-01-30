@@ -33,6 +33,8 @@ let cw = 8
 let rlh = fs * lh
 let cell = { w: ch, h: rlh / 2 }
 
+let speeds = [640, 320, 160, 80, 40, 20]
+
 let names = [
   'Autoencoder',
   'Var. Autoencoder',
@@ -43,23 +45,6 @@ let names = [
 let size = 4
 
 let sort_options = ['accuracy', 'precision', 'recall']
-
-let rInterval = function(callback, delay) {
-  var dateNow = Date.now,
-    requestAnimation = window.requestAnimationFrame,
-    start = dateNow(),
-    stop,
-    intervalFunc = function() {
-      dateNow() - start < delay || ((start += delay), callback())
-      stop || requestAnimation(intervalFunc)
-    }
-  requestAnimation(intervalFunc)
-  return {
-    clear: function() {
-      stop = 1
-    },
-  }
-}
 
 export default function Index() {
   let [data, setData] = useState(null)
@@ -83,6 +68,9 @@ export default function Index() {
   let topbar_ref = useRef(null)
   let [dpr, setDpr] = useState(1)
   let icon_ref = useRef(null)
+  let [speed, setSpeed] = useState(3)
+  let [initSpeed, setInitSpeed] = useState(false)
+  let [pause, setPause] = useState(false)
 
   useEffect(() => {
     if (data !== null) {
@@ -198,17 +186,122 @@ export default function Index() {
       let ix = icon.getContext('2d')
       ix.scale(dpr, dpr)
 
+      // requestAnimationFrame() shim by Paul Irish
+      // http://paulirish.com/2011/requestanimationframe-for-smart-animating/
+      window.requestAnimFrame = (function() {
+        return (
+          window.requestAnimationFrame ||
+          window.webkitRequestAnimationFrame ||
+          window.mozRequestAnimationFrame ||
+          window.oRequestAnimationFrame ||
+          window.msRequestAnimationFrame ||
+          function(/* function */ callback, /* DOMElement */ element) {
+            window.setTimeout(callback, 1000 / 60)
+          }
+        )
+      })()
+
+      // from https://gist.github.com/joelambert/1002116#gistcomment-1953925
+      /**
+       * Behaves the same as setInterval except uses requestAnimationFrame() where possible for better performance
+       * @param {function} fn The callback function
+       * @param {int} delay The delay in milliseconds
+       */
+      window.rInterval = function(fn, delay) {
+        if (
+          !window.requestAnimationFrame &&
+          !window.webkitRequestAnimationFrame &&
+          !(
+            window.mozRequestAnimationFrame &&
+            window.mozCancelRequestAnimationFrame
+          ) && // Firefox 5 ships without cancel support
+          !window.oRequestAnimationFrame &&
+          !window.msRequestAnimationFrame
+        )
+          return window.setInterval(fn, delay)
+
+        var start = new Date().getTime(),
+          handle = new Object()
+
+        function loop() {
+          var current = new Date().getTime(),
+            delta = current - start
+
+          if (delta >= delay) {
+            fn.call()
+            start = new Date().getTime()
+          }
+
+          handle.value = requestAnimFrame(loop)
+        }
+
+        handle.value = requestAnimFrame(loop)
+        return handle
+      }
+
+      /**
+       * Behaves the same as clearInterval except uses cancelRequestAnimationFrame() where possible for better performance
+       * @param {int|object} fn The callback function
+       */
+      window.clearRInterval = function(handle) {
+        window.cancelAnimationFrame
+          ? window.cancelAnimationFrame(handle.value)
+          : window.webkitCancelAnimationFrame
+          ? window.webkitCancelAnimationFrame(handle.value)
+          : window.webkitCancelRequestAnimationFrame
+          ? window.webkitCancelRequestAnimationFrame(
+              handle.value
+            ) /* Support for legacy API */
+          : window.mozCancelRequestAnimationFrame
+          ? window.mozCancelRequestAnimationFrame(handle.value)
+          : window.oCancelRequestAnimationFrame
+          ? window.oCancelRequestAnimationFrame(handle.value)
+          : window.msCancelRequestAnimationFrame
+          ? window.msCancelRequestAnimationFrame(handle.value)
+          : clearInterval(handle)
+      }
+
+      handler_ref.current = window.rInterval(() => {
+        setFrame(function(prev) {
+          return prev + 1
+        })
+      }, speeds[speed])
+    } else {
+      if (handler_ref.current !== null) {
+        window.clearRInterval(handler_ref.current)
+      }
+    }
+    setInitSpeed(true)
+  }, [data])
+
+  useEffect(() => {
+    if (initSpeed != false) {
+      if (handler_ref.current !== null) {
+        window.clearRInterval(handler_ref.current)
+      }
       handler_ref.current = rInterval(() => {
         setFrame(function(prev) {
           return prev + 1
         })
-      }, 80)
-    } else {
-      if (handler_ref.current !== null) {
-        handler_ref.current.clear()
+      }, speeds[speed])
+    }
+  }, [speed])
+
+  useEffect(() => {
+    if (initSpeed != false) {
+      if (pause === true) {
+        if (handler_ref.current !== null) {
+          window.clearRInterval(handler_ref.current)
+        }
+      } else {
+        handler_ref.current = rInterval(() => {
+          setFrame(function(prev) {
+            return prev + 1
+          })
+        }, speeds[speed])
       }
     }
-  }, [data])
+  }, [pause])
 
   useEffect(() => {
     if (data !== null) {
@@ -415,11 +508,10 @@ export default function Index() {
           <div
             style={{
               position: 'relative',
-              letterSpacing: '0.5ch',
               marginRight: '1ch',
             }}
           >
-            ANOMAL
+            BLIP
           </div>
           <button style={{}}>Info</button>
         </div>
@@ -680,7 +772,7 @@ export default function Index() {
               paddingRight: '1ch',
               marginTop: rlh / 2,
               textAlign: 'center',
-              marginBottom: rlh / 2,
+              marginBottom: rlh + rlh,
             }}
           >
             Anomal is an anomaly detection prototype by{' '}
@@ -710,28 +802,36 @@ export default function Index() {
                   paddingRight: '0.25ch',
                   marginLeft: '0.5ch',
                 }}
+                onClick={() => {
+                  if (speed > 0) {
+                    setSpeed(speed - 1)
+                  }
+                }}
               >
                 {'<'}
               </button>
-              {'123456'.split('').map(i =>
-                i == 6 ? (
+              {'123456'.split('').map((n, i) =>
+                i == speed ? (
                   <div
                     style={{
                       paddingLeft: '0.25ch',
                       paddingRight: '0.25ch',
                     }}
                   >
-                    {i}
+                    {n}
                   </div>
                 ) : (
                   <button
+                    onClick={() => {
+                      setSpeed(i)
+                    }}
                     style={{
                       paddingLeft: '0.25ch',
                       paddingRight: '0.25ch',
                       color: scheme.light,
                     }}
                   >
-                    {i}
+                    {n}
                   </button>
                 )
               )}
@@ -740,11 +840,27 @@ export default function Index() {
                   paddingLeft: '0.25ch',
                   paddingRight: '0.25ch',
                 }}
+                onClick={() => {
+                  if (speed < speeds.length - 1) {
+                    setSpeed(speed + 1)
+                  }
+                }}
               >
                 {'>'}
               </button>
             </div>
-            <button style={{ marginLeft: '2ch' }}>{'Pause'}</button>
+            <button
+              style={{ marginLeft: '2ch' }}
+              onClick={() => {
+                if (pause) {
+                  setPause(false)
+                } else {
+                  setPause(true)
+                }
+              }}
+            >
+              {pause ? 'Play' : 'Pause'}
+            </button>
           </div>
         </div>
       ) : (
