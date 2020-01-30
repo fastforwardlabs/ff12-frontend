@@ -44,6 +44,8 @@ let names = [
 
 let size = 4
 
+let termheight = 4
+
 let sort_options = ['accuracy', 'precision', 'recall']
 
 export default function Index() {
@@ -52,6 +54,7 @@ export default function Index() {
   let pref = useRef(null)
   let sref = useRef(null)
   let vref = useRef(null)
+  let href = useRef(null)
   let rankref = useRef(null)
   let [frame, setFrame] = useState(0)
   let [pspace, setPspace] = useState(null)
@@ -114,6 +117,15 @@ export default function Index() {
       v.style.height = vheight + 'px'
 
       vx.scale(dpr, dpr)
+
+      let h = href.current
+      h.width = v.width
+      h.height = v.height
+      h.style.width = vwidth + 'px'
+      h.style.height = vheight + 'px'
+
+      let hx = h.getContext('2d')
+      hx.scale(dpr, dpr)
 
       let $rank = rankref.current
       $rank.style.width = tw + 'px'
@@ -314,6 +326,9 @@ export default function Index() {
       let v = vref.current
       let vx = v.getContext('2d')
 
+      let h = href.current
+      let hx = h.getContext('2d')
+
       // update panel data
       let panel_keys = [21, 20, 21, 20]
       let record = data.data[frame]
@@ -331,6 +346,8 @@ export default function Index() {
 
       let pc = pdim[0][2] / size
       let pr = pdim[0][3] / size
+
+      hx.clearRect(0, 0, h.width / dpr, h.height / dpr)
 
       for (let i = 0; i < panels.length; i++) {
         let panel = panels[i]
@@ -364,6 +381,16 @@ export default function Index() {
 
         let dim = pdim[i]
         vx.fillRect(dim[0] + p1x, dim[1] + p1y, size + 1, size + 1)
+
+        hx.fillStyle = '#433142'
+        hx.fillRect(
+          dim[0] + p1x - 2,
+          dim[1] + p1y - 2,
+          size + 1 + 4,
+          size + 1 + 4
+        )
+        hx.fillStyle = vx.fillStyle
+        hx.fillRect(dim[0] + p1x, dim[1] + p1y, size + 1, size + 1)
 
         for (let j = 0; j < 4; j++) {
           $read.childNodes[i].childNodes[j].childNodes[1].innerHTML = panel[j]
@@ -533,7 +560,13 @@ export default function Index() {
           </div>
           <div style={{ width: '100%', overflow: 'auto' }}>
             <div style={{ width: '100%', minWidth: 6 * 19 + 1 + 'ch' }}>
-              <div style={{ display: 'flex', paddingRight: '1ch' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  paddingRight: '1ch',
+                  paddingLeft: '1ch',
+                }}
+              >
                 {key_des.map((k, i) => (
                   <div
                     style={{
@@ -559,27 +592,44 @@ export default function Index() {
 
               <div
                 style={{
-                  background: scheme.bg,
-                  color: scheme.fg,
                   paddingRight: '1ch',
-                  height: rlh * 4,
+                  height: rlh * termheight,
+                  background: scheme.bg,
+                  background: '#433142',
+                  color: scheme.fg,
                 }}
               >
                 {data.data
-                  .slice(frame - 4, frame)
+                  .slice(Math.max(frame - termheight, 0), frame)
                   .reverse()
                   .map((d, i) => (
                     <div
+                      key={frame + (termheight - i) - termheight}
                       style={{
+                        position: 'relative',
                         display: 'flex',
+                        paddingLeft: '1ch',
+                        // background:
+                        //   i !== 0 ? (d[19] ? red : scheme.bg) : scheme.bg,
                       }}
                     >
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: rlh / 2 - (size + 1) / 2 - 1,
+                          left: cw / 2 - (size + 1) / 2 + cw,
+                          height: size + 1,
+                          width: size + 1,
+                          background: d[19] ? red : scheme.bg,
+                        }}
+                      />
                       {d.slice(0, 19).map((d, j) => (
                         <div
                           style={{
                             display: 'flex',
                             paddingLeft: '1ch',
                             flexGrow: 1,
+                            position: 'relative',
                           }}
                         >
                           <div
@@ -589,7 +639,9 @@ export default function Index() {
                               textAlign: 'right',
                             }}
                           >
-                            {j === 0 ? frame + i : d}
+                            {j === 0
+                              ? frame + (termheight - i) - termheight
+                              : d}
                           </div>
                         </div>
                       ))}
@@ -669,7 +721,11 @@ export default function Index() {
           </div>
 
           <div style={{ position: 'relative' }}>
-            <canvas ref={vref} style={{ left: 0, top: 0 }} />
+            <canvas ref={vref} style={{}} />
+            <canvas
+              ref={href}
+              style={{ position: 'absolute', left: '1ch', top: 0 }}
+            />
             <div
               style={{ position: 'absolute', left: 0, top: 0 }}
               ref={title_ref}
@@ -775,7 +831,7 @@ export default function Index() {
               marginBottom: rlh + rlh,
             }}
           >
-            Anomal is an anomaly detection prototype by{' '}
+            Blip is an anomaly detection prototype by{' '}
             <a href="#">Cloudera Fast Forward</a>.
           </div>
           <div
