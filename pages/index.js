@@ -33,7 +33,7 @@ let cw = 8
 let rlh = fs * lh
 let cell = { w: ch, h: rlh / 2 }
 
-let speeds = [640, 320, 160, 80, 40, 20]
+let speeds = [640 * 2, 640, 320, 80, 40, 20]
 
 let names = [
   'Autoencoder',
@@ -71,7 +71,7 @@ export default function Index() {
   let topbar_ref = useRef(null)
   let [dpr, setDpr] = useState(1)
   let icon_ref = useRef(null)
-  let [speed, setSpeed] = useState(2)
+  let [speed, setSpeed] = useState(3)
   let [initSpeed, setInitSpeed] = useState(false)
   let [pause, setPause] = useState(false)
 
@@ -867,7 +867,7 @@ export default function Index() {
               >
                 {'<'}
               </button>
-              {'123456'.split('').map((n, i) =>
+              {speeds.map((n, i) =>
                 i == speed ? (
                   <div
                     style={{
@@ -875,7 +875,7 @@ export default function Index() {
                       paddingRight: '0.25ch',
                     }}
                   >
-                    {n}
+                    {i + 1}
                   </div>
                 ) : (
                   <button
@@ -888,7 +888,7 @@ export default function Index() {
                       color: scheme.light,
                     }}
                   >
-                    {n}
+                    {i + 1}
                   </button>
                 )
               )}
