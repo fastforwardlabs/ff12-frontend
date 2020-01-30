@@ -71,7 +71,7 @@ export default function Index() {
   let topbar_ref = useRef(null)
   let [dpr, setDpr] = useState(1)
   let icon_ref = useRef(null)
-  let [speed, setSpeed] = useState(3)
+  let [speed, setSpeed] = useState(2)
   let [initSpeed, setInitSpeed] = useState(false)
   let [pause, setPause] = useState(false)
 
@@ -382,7 +382,8 @@ export default function Index() {
         let dim = pdim[i]
         vx.fillRect(dim[0] + p1x, dim[1] + p1y, size + 1, size + 1)
 
-        hx.fillStyle = '#433142'
+        // hx.fillStyle = '#433142'
+        hx.fillStyle = bgs[i]
         hx.fillRect(
           dim[0] + p1x - 2,
           dim[1] + p1y - 2,
