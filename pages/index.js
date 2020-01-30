@@ -66,11 +66,11 @@ export default function Index() {
   let readout_ref = useRef(null)
   let truth_ref = useRef([0, 0])
   let treadout_ref = useRef(null)
-  let truthtitle_ref = useRef(null)
   let ranklabel_ref = useRef(null)
   let topbar_ref = useRef(null)
   let [dpr, setDpr] = useState(1)
   let icon_ref = useRef(null)
+  let con_ref = useRef(null)
   let [speed, setSpeed] = useState(3)
   let [initSpeed, setInitSpeed] = useState(false)
   let [pause, setPause] = useState(false)
@@ -109,8 +109,7 @@ export default function Index() {
       let th = tr * size
       tdim_ref.current = [tw, th]
 
-      let vheight =
-        (top + ph + bottom + bottom_space) * 2 + top + bottom + bottom_space
+      let vheight = (top + ph + bottom + bottom_space) * 2
       v.height = vheight * dpr
 
       v.style.width = vwidth + 'px'
@@ -167,11 +166,6 @@ export default function Index() {
         }
       }
 
-      let tt = truthtitle_ref.current
-      tt.style.width = tw + 'px'
-      tt.style.left = cw + 'px'
-      tt.style.top = 2 * (top + ph + bottom + bottom_space) + 'px'
-
       let $read = readout_ref.current
       for (let r = 0; r < pr; r++) {
         for (let c = 0; c < pc; c++) {
@@ -183,11 +177,6 @@ export default function Index() {
           $r.style.left = c * (pw + size * 4) + cw + 'px'
         }
       }
-
-      let tre = treadout_ref.current
-      tre.style.width = tw + 'px'
-      tre.style.left = cw + 'px'
-      tre.style.top = 2 * (top + ph + bottom + bottom_space) + rlh + 'px'
 
       let tb = topbar_ref.current
       tb.style.width = tw + 'px'
@@ -273,11 +262,13 @@ export default function Index() {
           : clearInterval(handle)
       }
 
-      handler_ref.current = window.rInterval(() => {
-        setFrame(function(prev) {
-          return prev + 1
-        })
-      }, speeds[speed])
+      if (!pause) {
+        handler_ref.current = window.rInterval(() => {
+          setFrame(function(prev) {
+            return prev + 1
+          })
+        }, speeds[speed])
+      }
     } else {
       if (handler_ref.current !== null) {
         window.clearRInterval(handler_ref.current)
@@ -288,24 +279,11 @@ export default function Index() {
 
   useEffect(() => {
     if (initSpeed != false) {
+      console.log(pause)
       if (handler_ref.current !== null) {
         window.clearRInterval(handler_ref.current)
       }
-      handler_ref.current = rInterval(() => {
-        setFrame(function(prev) {
-          return prev + 1
-        })
-      }, speeds[speed])
-    }
-  }, [speed])
-
-  useEffect(() => {
-    if (initSpeed != false) {
-      if (pause === true) {
-        if (handler_ref.current !== null) {
-          window.clearRInterval(handler_ref.current)
-        }
-      } else {
+      if (!pause) {
         handler_ref.current = rInterval(() => {
           setFrame(function(prev) {
             return prev + 1
@@ -313,14 +291,12 @@ export default function Index() {
         }, speeds[speed])
       }
     }
-  }, [pause])
+  }, [speed, pause])
 
   useEffect(() => {
     if (data !== null) {
       let panels = panels_ref.current
       let $read = readout_ref.current
-      let truth = truth_ref.current
-      let $truth = treadout_ref.current
       let pdim = pdim_ref.current
 
       let v = vref.current
@@ -336,18 +312,38 @@ export default function Index() {
 
       if (anomaly) {
         vx.fillStyle = red
-        truth[0]++
       } else {
         vx.fillStyle = scheme.bg
-        truth[1]++
       }
-      $truth.childNodes[0].childNodes[1].innerHTML = truth[0]
-      $truth.childNodes[1].childNodes[1].innerHTML = truth[1]
 
       let pc = pdim[0][2] / size
       let pr = pdim[0][3] / size
 
       hx.clearRect(0, 0, h.width / dpr, h.height / dpr)
+
+      // let con = con_ref.current
+      // let records = data.data
+      //   .slice(Math.max(0, frame + 1 - termheight), frame + 1)
+      //   .reverse()
+      // for (let i = 0; i < records.length; i++) {
+      //   let rec = records[i]
+      //   let row = con.childNodes[i]
+      //   let anomaly = rec[19] === 1 ? true : false
+      //   row.childNodes[0]
+      //   let indicator = (row.childNodes[0].style.background = anomaly
+      //     ? red
+      //     : scheme.bg)
+      //   for (let j = 0; j < row.childNodes.length - 1; j++) {
+      //     let cell = row.childNodes[j + 1].childNodes[0]
+      //     if (j === 0) {
+      //       cell.innerHTML = frame + (termheight - i) - termheight + 1
+      //     } else {
+      //       if (cell.innerHTML !== rec[j]) {
+      //         cell.innerHTML = rec[j]
+      //       }
+      //     }
+      //   }
+      // }
 
       for (let i = 0; i < panels.length; i++) {
         let panel = panels[i]
@@ -416,13 +412,6 @@ export default function Index() {
       }
 
       let vheight = v.height / dpr
-      let [tw, th] = tdim_ref.current
-      vx.clearRect(0, vheight - rlh * 2 - 1, tw, rlh + 2)
-      let split = truth[1] / (truth[0] + truth[1])
-      vx.fillStyle = red
-      vx.fillRect(0, vheight - rlh * 1.5, tw - tw * split, rlh)
-      vx.fillStyle = scheme.bg
-      vx.fillRect(tw - tw * split - 1, vheight - rlh * 1.5, tw * split, rlh)
 
       // set rankings
       {
@@ -444,13 +433,20 @@ export default function Index() {
           let [TP, FP, TN, FN] = panel
           let $r = $rs[i]
           let total = panel[0] + panel[1] + panel[2] + panel[3]
+
           $r.childNodes[0].childNodes[0].style.background = bgs[row[0]]
           $r.childNodes[0].childNodes[0].innerHTML = row[1]
-          $r.childNodes[1].childNodes[0].innerHTML = row[2] + '% '
+          $r.childNodes[1].childNodes[0].innerHTML = !isNaN(row[2])
+            ? row[2] + '% '
+            : 'N/A '
           $r.childNodes[1].childNodes[1].innerHTML = `(${TP}+${TN})/${total}`
-          $r.childNodes[2].childNodes[0].innerHTML = row[3] + '% '
+          $r.childNodes[2].childNodes[0].innerHTML = !isNaN(row[3])
+            ? row[3] + '% '
+            : 'N/A '
           $r.childNodes[2].childNodes[1].innerHTML = `${TP}/(${TP}+${FP})`
-          $r.childNodes[3].childNodes[0].innerHTML = row[4] + '% '
+          $r.childNodes[3].childNodes[0].innerHTML = !isNaN(row[4])
+            ? row[4] + '% '
+            : 'N/A '
           $r.childNodes[3].childNodes[1].innerHTML = `${TP}/(${TP}+${FN})`
 
           let y = i * rlh
@@ -464,6 +460,7 @@ export default function Index() {
           for (let c = 0; c < 3; c++) {
             let x = (c + 1) * xstep
             let w = (row[c + 2] / 100) * xstep - cw
+            if (w <= 0) w = 0
             sx.fillRect(x, y, w, h)
           }
         }
@@ -556,7 +553,7 @@ export default function Index() {
           >
             <div>CONNECTIONS</div>
             <div style={{ marginLeft: '1ch' }}>
-              <span style={{ color: '#777' }}>{frame}</span>
+              <span style={{ color: '#777' }}>{frame + 1}</span>
             </div>
           </div>
           <div style={{ width: '100%', overflow: 'auto' }}>
@@ -599,19 +596,18 @@ export default function Index() {
                   background: '#433142',
                   color: scheme.fg,
                 }}
+                ref={con_ref}
               >
                 {data.data
-                  .slice(Math.max(frame - termheight, 0), frame)
+                  .slice(Math.max(frame - termheight + 1, 0), frame + 1)
                   .reverse()
                   .map((d, i) => (
                     <div
-                      key={frame + (termheight - i) - termheight}
+                      key={frame + (termheight - i) - termheight + 1}
                       style={{
                         position: 'relative',
                         display: 'flex',
                         paddingLeft: '1ch',
-                        // background:
-                        //   i !== 0 ? (d[19] ? red : scheme.bg) : scheme.bg,
                       }}
                     >
                       <div
@@ -641,7 +637,7 @@ export default function Index() {
                             }}
                           >
                             {j === 0
-                              ? frame + (termheight - i) - termheight
+                              ? frame + (termheight - i) - termheight + 1
                               : d}
                           </div>
                         </div>
@@ -702,6 +698,8 @@ export default function Index() {
                           marginRight: '0.5ch',
                           paddingLeft: '0.5ch',
                           paddingRight: '0.5ch',
+                          minWidth: '5ch',
+                          textAlign: 'left',
                         }}
                       ></span>
                       <span style={{ color: scheme.light }}></span>
@@ -783,44 +781,6 @@ export default function Index() {
                   ))}
                 </div>
               ))}
-            </div>
-            <div
-              ref={truthtitle_ref}
-              style={{
-                position: 'absolute',
-              }}
-            >
-              <div style={{}}>DATA BALANCE</div>
-            </div>
-            <div
-              ref={treadout_ref}
-              style={{
-                position: 'absolute',
-                display: 'flex',
-              }}
-            >
-              <div style={{ width: '100%' }}>
-                <div style={{ fontStyle: 'italic' }}>Anomalies</div>
-                <div
-                  style={{
-                    color: 'white',
-                    paddingLeft: '1ch',
-                    textAlign: 'left',
-                  }}
-                ></div>
-              </div>
-              <div style={{ width: '100%' }}>
-                <div style={{ fontStyle: 'italic', textAlign: 'right' }}>
-                  Normal
-                </div>
-                <div
-                  style={{
-                    color: 'white',
-                    paddingRight: '1ch',
-                    textAlign: 'right',
-                  }}
-                ></div>
-              </div>
             </div>
           </div>
           <div
@@ -906,18 +866,37 @@ export default function Index() {
                 {'>'}
               </button>
             </div>
-            <button
-              style={{ marginLeft: '2ch' }}
-              onClick={() => {
-                if (pause) {
+            {pause ? (
+              <button
+                style={{ marginLeft: '2ch' }}
+                onClick={() => {
                   setPause(false)
-                } else {
+                }}
+              >
+                Play
+              </button>
+            ) : (
+              <button
+                style={{ marginLeft: '2ch' }}
+                onClick={() => {
                   setPause(true)
-                }
-              }}
-            >
-              {pause ? 'Play' : 'Pause'}
-            </button>
+                }}
+              >
+                Pause
+              </button>
+            )}
+            {pause ? (
+              <button
+                style={{ marginLeft: '2ch' }}
+                onClick={() => {
+                  setFrame(function(prev) {
+                    return prev + 1
+                  })
+                }}
+              >
+                Tick
+              </button>
+            ) : null}
           </div>
         </div>
       ) : (
