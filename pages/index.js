@@ -77,7 +77,7 @@ export default function Index() {
   let [speed, setSpeed] = useState(3)
   let [initSpeed, setInitSpeed] = useState(false)
   let [pause, setPause] = useState(false)
-  let [info, setInfo] = useState(false)
+  let [info, setInfo] = useState(true)
   let [sort, setSort] = useState(0)
   let [finish, setFinish] = useState(false)
 
