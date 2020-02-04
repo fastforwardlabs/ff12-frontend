@@ -49,6 +49,8 @@ let termheight = 4
 
 let sort_options = ['accuracy', 'precision', 'recall']
 
+let finish_line = 10000
+
 export default function Index() {
   let [data, setData] = useState(null)
   let handler_ref = useRef(null)
@@ -75,7 +77,9 @@ export default function Index() {
   let [speed, setSpeed] = useState(3)
   let [initSpeed, setInitSpeed] = useState(false)
   let [pause, setPause] = useState(false)
-  let [info, setInfo] = useState(true)
+  let [info, setInfo] = useState(false)
+  let [sort, setSort] = useState(0)
+  let [finish, setFinish] = useState(false)
 
   useEffect(() => {
     if (data !== null) {
@@ -426,7 +430,7 @@ export default function Index() {
           return [i, n, panel[4], panel[5], panel[6]]
         })
         rank_rows.sort(function(a, b) {
-          return b[2] - a[2]
+          return b[2 + sort] - a[2 + sort]
         })
         for (let i = 0; i < rank_rows.length; i++) {
           let row = rank_rows[i]
@@ -480,8 +484,15 @@ export default function Index() {
           ix.fillRect(0, y, w, step)
         }
       }
+
+      // finish line
+      if (frame === finish_line - 1) {
+        window.clearRInterval(handler_ref.current)
+        setFinish(true)
+        setPause(true)
+      }
     }
-  }, [data, frame])
+  }, [data, frame, sort])
 
   useEffect(() => {
     let dpr = window.devicePixelRatio || 1
@@ -503,6 +514,10 @@ export default function Index() {
 
   return (
     <div>
+      <Head>
+        <title>Blip</title>
+      </Head>
+
       <div style={{ paddingLeft: '1ch', paddingRight: '1ch' }}>
         <div ref={pref} />
       </div>
@@ -645,7 +660,7 @@ export default function Index() {
                             }}
                           >
                             {j === 0
-                              ? frame + (termheight - i) - termheight + 1
+                              ? frame + (termheight - i) - termheight
                               : d}
                           </div>
                         </div>
@@ -674,13 +689,42 @@ export default function Index() {
           >
             <div style={{ width: '100%' }}>Ranking</div>
             {[
-              ['Accuracy', '(TP+TN)/ALL'],
-              ['Precision', 'TP/(TP+FP)'],
-              ['Recall', 'TP/(TP+FN)'],
-            ].map(n => (
+              [
+                'Accuracy',
+                '(TP+TN)/ALL',
+                '(True Positive + True Negative) / ALL',
+              ],
+              [
+                'Precision',
+                'TP/(TP+FP)',
+                'True Positive / (True Positive + False Positive)',
+              ],
+              [
+                'Recall',
+                'TP/(TP+FN)',
+                'True Positive / (True Positive + False Negative)',
+              ],
+            ].map((n, i) => (
               <div style={{ width: '100%' }}>
-                {n[0]}{' '}
-                <span style={{ color: scheme.light, fontStyle: 'normal' }}>
+                {sort === i ? (
+                  <span title={`Rankings sorted by ${sort_options[i]}`}>
+                    {n[0]}
+                  </span>
+                ) : (
+                  <button
+                    title={`Click to sort by ${sort_options[i]}`}
+                    onClick={() => {
+                      setSort(i)
+                    }}
+                    style={{ fontStyle: 'italic' }}
+                  >
+                    {n[0]}
+                  </button>
+                )}{' '}
+                <span
+                  style={{ color: scheme.light, fontStyle: 'normal' }}
+                  title={n[2]}
+                >
                   {n[1]}
                 </span>
               </div>
@@ -802,7 +846,10 @@ export default function Index() {
             }}
           >
             Blip is an anomaly detection prototype by{' '}
-            <a href="#">Cloudera Fast Forward</a>.
+            <a href="https://www.cloudera.com/products/fast-forward-labs-research.html">
+              Cloudera Fast Forward
+            </a>
+            .
           </div>
           <div
             style={{
@@ -816,85 +863,89 @@ export default function Index() {
               display: 'flex',
             }}
           >
-            <div
-              style={{
-                display: 'flex',
-              }}
-            >
-              <div>Speed:</div>
-              <button
+            {frame + 1 != finish_line ? (
+              <div
                 style={{
-                  paddingLeft: '0.25ch',
-                  paddingRight: '0.25ch',
-                  marginLeft: '0.5ch',
-                }}
-                onClick={() => {
-                  if (speed > 0) {
-                    setSpeed(speed - 1)
-                  }
+                  display: 'flex',
                 }}
               >
-                {'<'}
-              </button>
-              {speeds.map((n, i) =>
-                i == speed ? (
-                  <div
-                    style={{
-                      paddingLeft: '0.25ch',
-                      paddingRight: '0.25ch',
-                    }}
-                  >
-                    {i + 1}
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => {
-                      setSpeed(i)
-                    }}
-                    style={{
-                      paddingLeft: '0.25ch',
-                      paddingRight: '0.25ch',
-                      color: scheme.light,
-                    }}
-                  >
-                    {i + 1}
-                  </button>
-                )
-              )}
-              <button
-                style={{
-                  paddingLeft: '0.25ch',
-                  paddingRight: '0.25ch',
-                }}
-                onClick={() => {
-                  if (speed < speeds.length - 1) {
-                    setSpeed(speed + 1)
-                  }
-                }}
-              >
-                {'>'}
-              </button>
-            </div>
-            {pause ? (
-              <button
-                style={{ marginLeft: '2ch' }}
-                onClick={() => {
-                  setPause(false)
-                }}
-              >
-                Play
-              </button>
-            ) : (
-              <button
-                style={{ marginLeft: '2ch' }}
-                onClick={() => {
-                  setPause(true)
-                }}
-              >
-                Pause
-              </button>
-            )}
-            {pause ? (
+                <div>Speed:</div>
+                <button
+                  style={{
+                    paddingLeft: '0.25ch',
+                    paddingRight: '0.25ch',
+                    marginLeft: '0.5ch',
+                  }}
+                  onClick={() => {
+                    if (speed > 0) {
+                      setSpeed(speed - 1)
+                    }
+                  }}
+                >
+                  {'<'}
+                </button>
+                {speeds.map((n, i) =>
+                  i == speed ? (
+                    <div
+                      style={{
+                        paddingLeft: '0.25ch',
+                        paddingRight: '0.25ch',
+                      }}
+                    >
+                      {i + 1}
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        setSpeed(i)
+                      }}
+                      style={{
+                        paddingLeft: '0.25ch',
+                        paddingRight: '0.25ch',
+                        color: scheme.light,
+                      }}
+                    >
+                      {i + 1}
+                    </button>
+                  )
+                )}
+                <button
+                  style={{
+                    paddingLeft: '0.25ch',
+                    paddingRight: '0.25ch',
+                  }}
+                  onClick={() => {
+                    if (speed < speeds.length - 1) {
+                      setSpeed(speed + 1)
+                    }
+                  }}
+                >
+                  {'>'}
+                </button>
+              </div>
+            ) : null}
+            {frame + 1 != finish_line ? (
+              pause ? (
+                <button
+                  style={{ marginLeft: '2ch' }}
+                  onClick={() => {
+                    setPause(false)
+                  }}
+                >
+                  Play
+                </button>
+              ) : (
+                <button
+                  style={{ marginLeft: '2ch' }}
+                  onClick={() => {
+                    setPause(true)
+                  }}
+                >
+                  Pause
+                </button>
+              )
+            ) : null}
+            {pause && frame + 1 != finish_line ? (
               <button
                 style={{ marginLeft: '2ch' }}
                 onClick={() => {
@@ -996,7 +1047,7 @@ export default function Index() {
                       KDD network intrusion dataset
                     </a>
                     . You can read about how each model was trained in the{' '}
-                    <a href="#">propqq ototype section of our report</a>.
+                    <a href="#">protototype section of our report</a>.
                   </div>
                   <div style={{ marginBottom: rlh / 2 }}>
                     The top CONNECTIONS section shows the{' '}
@@ -1055,20 +1106,157 @@ export default function Index() {
                     finishing. You can control the speed of the simulation with
                     the controls at the bottom.
                   </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <button
-                      style={{
-                        background: scheme.bg,
-                        color: '#fff',
-                        paddingLeft: '0.5ch',
-                        paddingRight: '0.5ch',
-                      }}
-                      onClick={() => {
-                        setInfo(false)
-                      }}
-                    >
-                      Start the simulation
-                    </button>
+                  {frame != finish_line - 1 ? (
+                    <div style={{ textAlign: 'right' }}>
+                      <button
+                        style={{
+                          background: scheme.bg,
+                          color: '#fff',
+                          paddingLeft: '0.5ch',
+                          paddingRight: '0.5ch',
+                        }}
+                        onClick={() => {
+                          setInfo(false)
+                        }}
+                      >
+                        Start the simulation
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+          ) : null}
+          {finish ? (
+            <div
+              style={{
+                position: 'fixed',
+                left: 0,
+                top: 0,
+                right: 0,
+                bottom: 0,
+                zIndex: 999,
+                background: 'rgba(0,0,0,0.2)',
+              }}
+              onClick={() => {
+                setFinish(false)
+              }}
+            >
+              <div
+                onClick={e => {
+                  e.stopPropagation()
+                }}
+                style={{
+                  width: '80ch',
+                  maxWidth: '100%',
+                  background: scheme.bg,
+                  color: scheme.fg,
+                  marginLeft: 'auto',
+                  marginRight: 'auto',
+                  marginTop: rlh * 1.5,
+                  marginBottom: rlh * 1.5,
+                }}
+              >
+                <div
+                  style={{
+                    paddingLeft: '1ch',
+                    paddingRight: '1ch',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <div>Finished</div>
+                  <button
+                    onClick={() => {
+                      setFinish(false)
+                    }}
+                  >
+                    X
+                  </button>
+                </div>
+                <div
+                  style={{
+                    background: '#fff',
+                    paddingTop: rlh / 2,
+                    paddingLeft: '1ch',
+                    paddingRight: '1ch',
+                    color: scheme.bg,
+                    paddingBottom: rlh / 2,
+                  }}
+                >
+                  <div style={{ marginBottom: rlh / 2 }}>
+                    After {finish_line} connections, you've reached the end of
+                    the anomaly detection simulation.
+                  </div>
+                  <div style={{ marginBottom: rlh / 2 }}>
+                    The final standings:
+                  </div>
+
+                  <div
+                    style={{
+                      display: 'flex',
+                      fontStyle: 'italic',
+                    }}
+                  >
+                    {['Ranking', 'Accuracy', 'Precision', 'Recall'].map(n => (
+                      <div style={{ width: '100%' }}>{n}</div>
+                    ))}
+                  </div>
+
+                  <div style={{ marginBottom: rlh }}>
+                    {names
+                      .map((n, i) => {
+                        let panel = panels_ref.current[i]
+                        return [i, n, panel[4], panel[5], panel[6]]
+                      })
+                      .sort(function(a, b) {
+                        return b[2 + sort] - a[2 + sort]
+                      })
+                      .map((r, i) => (
+                        <div style={{ display: 'flex' }}>
+                          <div style={{ width: '100%' }}>
+                            {i + 1}{' '}
+                            <span
+                              style={{
+                                background: bgs[r[0]],
+                                display: 'inline-block',
+                                paddingLeft: '0.5ch',
+                                paddingRight: '0.5ch',
+                              }}
+                            >
+                              {r[1]}
+                            </span>
+                          </div>
+
+                          {[r[2], r[3], r[4]].map(v => (
+                            <div
+                              style={{
+                                width: '100%',
+                                position: 'relative',
+                                paddingLeft: '0.5ch',
+                              }}
+                            >
+                              <div
+                                style={{
+                                  position: 'absolute',
+                                  left: 0,
+                                  top: 0,
+                                  height: rlh,
+                                  background: '#ccc',
+                                  width: `calc(${v}% - 1ch)`,
+                                }}
+                              />
+                              <div style={{ position: 'relative' }}>{v}%</div>
+                            </div>
+                          ))}
+                        </div>
+                      ))}
+                  </div>
+
+                  <div>
+                    Read more about the models and their performance on the full
+                    dataset in{' '}
+                    <a href="#">the prototype section of our report</a>.
                   </div>
                 </div>
               </div>
