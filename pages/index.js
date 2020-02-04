@@ -35,12 +35,13 @@ let cell = { w: ch, h: rlh / 2 }
 
 let speeds = [640 * 2, 640, 320, 80, 40, 20]
 
-let names = [
-  'Autoencoder',
-  'Var. Autoencoder',
-  'Autoencoder',
-  'Var. Autoencoder',
-]
+let names = ['OSVM', 'Autoencoder', 'Var Autoencoder', 'BiGAN']
+
+let name_max = names.reduce((t, c) => {
+  console.log(c)
+  console.log(c.length)
+  return Math.max(c.length, t)
+}, 0)
 
 let size = 4
 
@@ -74,6 +75,7 @@ export default function Index() {
   let [speed, setSpeed] = useState(3)
   let [initSpeed, setInitSpeed] = useState(false)
   let [pause, setPause] = useState(false)
+  let [info, setInfo] = useState(true)
 
   useEffect(() => {
     if (data !== null) {
@@ -262,7 +264,7 @@ export default function Index() {
           : clearInterval(handle)
       }
 
-      if (!pause) {
+      if (!pause && !info) {
         handler_ref.current = window.rInterval(() => {
           setFrame(function(prev) {
             return prev + 1
@@ -279,11 +281,10 @@ export default function Index() {
 
   useEffect(() => {
     if (initSpeed != false) {
-      console.log(pause)
       if (handler_ref.current !== null) {
         window.clearRInterval(handler_ref.current)
       }
-      if (!pause) {
+      if (!pause && !info) {
         handler_ref.current = rInterval(() => {
           setFrame(function(prev) {
             return prev + 1
@@ -291,7 +292,7 @@ export default function Index() {
         }, speeds[speed])
       }
     }
-  }, [speed, pause])
+  }, [speed, pause, info])
 
   useEffect(() => {
     if (data !== null) {
@@ -434,8 +435,9 @@ export default function Index() {
           let $r = $rs[i]
           let total = panel[0] + panel[1] + panel[2] + panel[3]
 
-          $r.childNodes[0].childNodes[0].style.background = bgs[row[0]]
-          $r.childNodes[0].childNodes[0].innerHTML = row[1]
+          $r.childNodes[0].childNodes[0].innerHTML = i + 1
+          $r.childNodes[0].childNodes[1].style.background = bgs[row[0]]
+          $r.childNodes[0].childNodes[1].innerHTML = row[1]
           $r.childNodes[1].childNodes[0].innerHTML = !isNaN(row[2])
             ? row[2] + '% '
             : 'N/A '
@@ -538,7 +540,13 @@ export default function Index() {
           >
             BLIP
           </div>
-          <button style={{}}>Info</button>
+          <button
+            onClick={() => {
+              setInfo(true)
+            }}
+          >
+            Info
+          </button>
         </div>
       </div>
       {data ? (
@@ -692,13 +700,15 @@ export default function Index() {
                 <div style={{ display: 'flex' }}>
                   {[...Array(4)].map((n, j) => (
                     <div style={{ width: '100%' }}>
+                      {j === 0 ? (
+                        <span style={{ marginRight: '1ch' }}></span>
+                      ) : null}
                       <span
                         style={{
                           display: 'inline-block',
                           marginRight: '0.5ch',
                           paddingLeft: '0.5ch',
                           paddingRight: '0.5ch',
-                          minWidth: '5ch',
                           textAlign: 'left',
                         }}
                       ></span>
@@ -897,6 +907,173 @@ export default function Index() {
               </button>
             ) : null}
           </div>
+          {info ? (
+            <div
+              style={{
+                position: 'fixed',
+                left: 0,
+                top: 0,
+                right: 0,
+                bottom: 0,
+                zIndex: 999,
+                background: 'rgba(0,0,0,0.2)',
+              }}
+              onClick={() => {
+                setInfo(false)
+              }}
+            >
+              <div
+                onClick={e => {
+                  e.stopPropagation()
+                }}
+                style={{
+                  width: '80ch',
+                  maxWidth: '100%',
+                  background: scheme.bg,
+                  color: scheme.fg,
+                  marginLeft: 'auto',
+                  marginRight: 'auto',
+                  marginTop: rlh * 1.5,
+                  marginBottom: rlh * 1.5,
+                }}
+              >
+                <div
+                  style={{
+                    paddingLeft: '1ch',
+                    paddingRight: '1ch',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <div>Info</div>
+                  <button
+                    onClick={() => {
+                      setInfo(false)
+                    }}
+                  >
+                    X
+                  </button>
+                </div>
+                <div
+                  style={{
+                    background: '#fff',
+                    paddingTop: rlh / 2,
+                    paddingLeft: '1ch',
+                    paddingRight: '1ch',
+                    color: scheme.bg,
+                    paddingBottom: rlh / 2,
+                  }}
+                >
+                  <div style={{ fontStyle: 'italic', marginBottom: rlh / 2 }}>
+                    Blip is a prototype by{' '}
+                    <a href="https://www.cloudera.com/products/fast-forward-labs-research.html">
+                      Cloudera Fast Forward
+                    </a>{' '}
+                    built to accompany our{' '}
+                    <a href="https://ff12.fastforwardlabs.com">
+                      report on Deep Learning for Anomaly Detection
+                    </a>
+                    .
+                  </div>
+                  <div style={{ marginBottom: rlh / 2 }}>
+                    Blip shows how four different algorithms (
+                    {names.map((n, i) => (
+                      <span>
+                        <span
+                          style={{
+                            background: bgs[i],
+                            paddingLeft: '0.5ch',
+                            paddingRight: '0.5ch',
+                          }}
+                        >
+                          {n}
+                        </span>
+                        {i != names.length - 1 ? <span>, </span> : null}
+                      </span>
+                    ))}
+                    ) perform at detecting network attacks in the{' '}
+                    <a href="http://kdd.ics.uci.edu/databases/kddcup99/task.html">
+                      KDD network intrusion dataset
+                    </a>
+                    . You can read about how each model was trained in the{' '}
+                    <a href="#">propqq ototype section of our report</a>.
+                  </div>
+                  <div style={{ marginBottom: rlh / 2 }}>
+                    The top CONNECTIONS section shows the{' '}
+                    <span
+                      style={{
+                        paddingLeft: '0.5ch',
+                        paddingRight: '0.5ch',
+                        background: '#433142',
+                        color: '#fff',
+                      }}
+                    >
+                      network connections
+                    </span>{' '}
+                    coming in, with the features used by each model for their
+                    prediction. The color of the square shows the true status of
+                    whether the connection is an{' '}
+                    <span
+                      style={{
+                        background: red,
+                        paddingLeft: '0.5ch',
+                        paddingRight: '0.5ch',
+                      }}
+                    >
+                      attack
+                    </span>{' '}
+                    or{' '}
+                    <span
+                      style={{
+                        background: scheme.bg,
+                        color: scheme.fg,
+                        paddingLeft: '0.5ch',
+                        paddingRight: '0.5ch',
+                      }}
+                    >
+                      normal
+                    </span>
+                    .
+                  </div>
+                  <div style={{ marginBottom: rlh / 2 }}>
+                    The STRATEGIES section shows metrics on how each algorithm
+                    is peforming on the incoming data. You can see the accuracy,
+                    recall, and precision metrics for each strategy.
+                  </div>
+                  <div style={{ marginBottom: rlh / 2 }}>
+                    The VISUALIZED section provides another view of each
+                    strategy's performance. Each connection is visualized as a
+                    square. If it is classified as an attack it is placed on the
+                    left; if classified normal, it is placed on the right. The
+                    color reveals its true status. Over time the density and
+                    position of the colors in each strategy visualization give
+                    you a feel for the different models strengths and
+                    weaknesses.
+                  </div>
+                  <div style={{ marginBottom: rlh / 2 }}>
+                    The simulation will run through 10,000 connections before
+                    finishing. You can control the speed of the simulation with
+                    the controls at the bottom.
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <button
+                      style={{
+                        background: scheme.bg,
+                        color: '#fff',
+                        paddingLeft: '0.5ch',
+                        paddingRight: '0.5ch',
+                      }}
+                      onClick={() => {
+                        setInfo(false)
+                      }}
+                    >
+                      Start the simulation
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : null}
         </div>
       ) : (
         <div>loading...</div>

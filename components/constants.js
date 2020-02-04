@@ -33,7 +33,7 @@ export let color = {
 }
 
 export let key_des = [
-  ['index', 'idx', 'record index'],
+  ['index', 'index', 'record index'],
 
   [
     'srv_count',
