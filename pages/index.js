@@ -64,7 +64,6 @@ export default function Index() {
   let panels_ref = useRef([...Array(4)].map(n => [...Array(4)].map(n => 0)))
   let ranksref = useRef([...Array(4)].map(n => createRef()))
   let pdim_ref = useRef([])
-  let tdim_ref = useRef([])
   let title_ref = useRef(null)
   let readout_ref = useRef(null)
   let truth_ref = useRef([0, 0])
@@ -77,7 +76,7 @@ export default function Index() {
   let [speed, setSpeed] = useState(3)
   let [initSpeed, setInitSpeed] = useState(false)
   let [pause, setPause] = useState(false)
-  let [info, setInfo] = useState(false)
+  let [info, setInfo] = useState(true)
   let [sort, setSort] = useState(0)
   let [finish, setFinish] = useState(false)
   let [ranks, setRanks] = useState(names.slice())
@@ -92,7 +91,6 @@ export default function Index() {
       v.style.marginLeft = pleft + 'px'
       let vx = v.getContext('2d')
       let pdim = pdim_ref.current
-      let tdim = tdim_ref.current
 
       let stacked = false
       let lc = 2
@@ -106,7 +104,7 @@ export default function Index() {
         ),
         300
       )
-      let panel_rows = Math.ceil(10000 / (panel_columns - 2))
+      let panel_rows = Math.ceil(10000 / (panel_columns - 3))
 
       let pw = panel_columns * size
       let ph = panel_rows * size
@@ -118,11 +116,10 @@ export default function Index() {
       let bottom = rlh * 2
       let bottom_space = rlh / 2
 
-      let tc = panel_columns * lc + 4
+      let tc = panel_columns * lc + (stacked ? 0 : 4)
       let tr = Math.ceil(10000 / (columns - 1))
       let tw = tc * size
       let th = tr * size
-      tdim_ref.current = [tw, th]
 
       let vheight = (top + ph + bottom + bottom_space) * pr
       v.height = vheight * dpr
@@ -300,134 +297,114 @@ export default function Index() {
     }
   }, [speed, pause, info])
 
+  function processFrame(frame) {
+    if (frame < data.length && frame < finish_line - 1) {
+      let panels = panels_ref.current
+      let $read = readout_ref.current
+      let pdim = pdim_ref.current
+
+      let v = vref.current
+      let vx = v.getContext('2d')
+
+      let h = href.current
+      let hx = h.getContext('2d')
+
+      // update panel data
+      let panel_keys = [19, 20, 21, 22]
+      let record = data[frame]
+      let anomaly = record[18] === 1 ? true : false
+
+      if (anomaly) {
+        vx.fillStyle = red
+      } else {
+        vx.fillStyle = scheme.bg
+      }
+
+      let pc = pdim[0][2] / size
+      let pr = pdim[0][3] / size
+
+      hx.clearRect(0, 0, h.width / dpr, h.height / dpr)
+
+      for (let i = 0; i < panels.length; i++) {
+        let panel = panels[i]
+        let detected = record[panel_keys[i]]
+
+        let p1x, p1y
+        // TP FP TN FN
+        if (detected > 0.1) {
+          let n = panels[i][0] + panels[i][1]
+          p1y = (pr - (n % pr) - 1) * size
+          p1x = Math.floor(n / pr) * size
+          if (anomaly) {
+            // true pos
+            panels[i][0]++
+          } else {
+            // false pos
+            panels[i][1]++
+          }
+        } else {
+          let n = panels[i][2] + panels[i][3]
+          p1y = (pr - (n % pr) - 1) * size
+          p1x = (pc - Math.floor(n / pr) - 1) * size - 1
+          if (anomaly) {
+            // false neg
+            panels[i][3]++
+          } else {
+            // true neg
+            panels[i][2]++
+          }
+        }
+
+        let dim = pdim[i]
+        vx.fillRect(dim[0] + p1x, dim[1] + p1y, size + 1, size + 1)
+
+        // hx.fillStyle = '#433142'
+        hx.fillStyle = bgs[i]
+        hx.fillRect(
+          dim[0] + p1x - 2,
+          dim[1] + p1y - 2,
+          size + 1 + 4,
+          size + 1 + 4
+        )
+        hx.fillStyle = vx.fillStyle
+        hx.fillRect(dim[0] + p1x, dim[1] + p1y, size + 1, size + 1)
+
+        for (let j = 0; j < 4; j++) {
+          $read.childNodes[i].childNodes[j].childNodes[1].innerHTML = panel[j]
+        }
+
+        //accuracy = (TP+TN)/(TP+TN+FP+FN)
+        let accuracy = Math.round(
+          ((panel[0] + panel[2]) /
+            (panel[0] + panel[1] + panel[2] + panel[3])) *
+            100
+        )
+        // precision tp / (tp + fp)
+        let precision = Math.round((panel[0] / (panel[0] + panel[1])) * 100)
+
+        // recall tp / (tp + fn)
+        let recall = Math.round((panel[0] / (panel[0] + panel[3])) * 100)
+
+        // 4 5 6
+        panels[i][4] = accuracy
+        panels[i][5] = precision
+        panels[i][6] = recall
+      }
+
+      setRankings()
+    }
+
+    // finish line
+    if (frame >= finish_line - 1) {
+      window.clearRInterval(handler_ref.current)
+      setFinish(true)
+      setPause(true)
+    }
+  }
+
   useEffect(() => {
     if (data !== null) {
-      if (frame < data.length && frame < finish_line - 1) {
-        let panels = panels_ref.current
-        let $read = readout_ref.current
-        let pdim = pdim_ref.current
-
-        let v = vref.current
-        let vx = v.getContext('2d')
-
-        let h = href.current
-        let hx = h.getContext('2d')
-
-        // update panel data
-        let panel_keys = [19, 20, 21, 22]
-        let record = data[frame]
-        let anomaly = record[18] === 1 ? true : false
-
-        if (anomaly) {
-          vx.fillStyle = red
-        } else {
-          vx.fillStyle = scheme.bg
-        }
-
-        let pc = pdim[0][2] / size
-        let pr = pdim[0][3] / size
-
-        hx.clearRect(0, 0, h.width / dpr, h.height / dpr)
-
-        // let con = con_ref.current
-        // let records = data.data
-        //   .slice(Math.max(0, frame + 1 - termheight), frame + 1)
-        //   .reverse()
-        // for (let i = 0; i < records.length; i++) {
-        //   let rec = records[i]
-        //   let row = con.childNodes[i]
-        //   let anomaly = rec[19] === 1 ? true : false
-        //   row.childNodes[0]
-        //   let indicator = (row.childNodes[0].style.background = anomaly
-        //     ? red
-        //     : scheme.bg)
-        //   for (let j = 0; j < row.childNodes.length - 1; j++) {
-        //     let cell = row.childNodes[j + 1].childNodes[0]
-        //     if (j === 0) {
-        //       cell.innerHTML = frame + (termheight - i) - termheight + 1
-        //     } else {
-        //       if (cell.innerHTML !== rec[j]) {
-        //         cell.innerHTML = rec[j]
-        //       }
-        //     }
-        //   }
-        // }
-
-        for (let i = 0; i < panels.length; i++) {
-          let panel = panels[i]
-          let detected = record[panel_keys[i]]
-
-          let p1x, p1y
-          // TP FP TN FN
-          if (detected > 0.1) {
-            let n = panels[i][0] + panels[i][1]
-            p1y = (pr - (n % pr) - 1) * size
-            p1x = Math.floor(n / pr) * size
-            if (anomaly) {
-              // true pos
-              panels[i][0]++
-            } else {
-              // false pos
-              panels[i][1]++
-            }
-          } else {
-            let n = panels[i][2] + panels[i][3]
-            p1y = (pr - (n % pr) - 1) * size
-            p1x = (pc - Math.floor(n / pr) - 1) * size - 1
-            if (anomaly) {
-              // false neg
-              panels[i][3]++
-            } else {
-              // true neg
-              panels[i][2]++
-            }
-          }
-
-          let dim = pdim[i]
-          vx.fillRect(dim[0] + p1x, dim[1] + p1y, size + 1, size + 1)
-
-          // hx.fillStyle = '#433142'
-          hx.fillStyle = bgs[i]
-          hx.fillRect(
-            dim[0] + p1x - 2,
-            dim[1] + p1y - 2,
-            size + 1 + 4,
-            size + 1 + 4
-          )
-          hx.fillStyle = vx.fillStyle
-          hx.fillRect(dim[0] + p1x, dim[1] + p1y, size + 1, size + 1)
-
-          for (let j = 0; j < 4; j++) {
-            $read.childNodes[i].childNodes[j].childNodes[1].innerHTML = panel[j]
-          }
-
-          //accuracy = (TP+TN)/(TP+TN+FP+FN)
-          let accuracy = Math.round(
-            ((panel[0] + panel[2]) /
-              (panel[0] + panel[1] + panel[2] + panel[3])) *
-              100
-          )
-          // precision tp / (tp + fp)
-          let precision = Math.round((panel[0] / (panel[0] + panel[1])) * 100)
-
-          // recall tp / (tp + fn)
-          let recall = Math.round((panel[0] / (panel[0] + panel[3])) * 100)
-
-          // 4 5 6
-          panels[i][4] = accuracy
-          panels[i][5] = precision
-          panels[i][6] = recall
-        }
-
-        setRankings()
-      }
-
-      // finish line
-      if (frame >= finish_line - 1 + 10) {
-        window.clearRInterval(handler_ref.current)
-        setFinish(true)
-        setPause(true)
-      }
+      processFrame(frame)
     }
   }, [data, frame])
 
@@ -492,6 +469,16 @@ export default function Index() {
     }
 
     setRanks(rank_rows.map(o => o[1]))
+  }
+
+  function skipFinish() {
+    if (handler_ref.current !== null) {
+      window.clearRInterval(handler_ref.current)
+    }
+    for (let i = frame; i < finish_line - 1; i++) {
+      processFrame(i)
+    }
+    setFrame(finish_line - 1)
   }
 
   useEffect(() => {
@@ -960,7 +947,7 @@ export default function Index() {
               display: 'flex',
             }}
           >
-            {frame + 1 <= finish_line ? (
+            {frame + 1 <= finish_line - 1 ? (
               <div
                 style={{
                   display: 'flex',
@@ -1021,7 +1008,7 @@ export default function Index() {
                 </button>
               </div>
             ) : null}
-            {frame + 1 <= finish_line ? (
+            {frame + 1 <= finish_line - 1 ? (
               pause ? (
                 <button
                   style={{ marginLeft: '2ch' }}
@@ -1042,7 +1029,7 @@ export default function Index() {
                 </button>
               )
             ) : null}
-            {pause && frame + 1 <= finish_line ? (
+            {pause && frame + 1 <= finish_line - 1 ? (
               <button
                 style={{ marginLeft: '2ch' }}
                 onClick={() => {
@@ -1052,6 +1039,16 @@ export default function Index() {
                 }}
               >
                 Tick
+              </button>
+            ) : null}
+            {pause && frame + 1 <= finish_line - 1 ? (
+              <button
+                style={{ marginLeft: '2ch' }}
+                onClick={() => {
+                  skipFinish()
+                }}
+              >
+                Skip to finish
               </button>
             ) : null}
           </div>
@@ -1357,7 +1354,16 @@ export default function Index() {
           ) : null}
         </div>
       ) : (
-        <div>loading...</div>
+        <div
+          style={{
+            paddingTop: rlh / 2,
+            paddingBottom: rlh / 2,
+            paddingLeft: cw,
+            paddingRight: cw,
+          }}
+        >
+          Loading dataset...
+        </div>
       )}
       <style global jsx>{`
         @font-face {
