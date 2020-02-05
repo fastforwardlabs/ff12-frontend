@@ -35,11 +35,9 @@ let cell = { w: ch, h: rlh / 2 }
 
 let speeds = [640 * 2, 640, 320, 80, 40, 20]
 
-let names = ['OSVM', 'Autoencoder', 'Var Autoencoder', 'BiGAN']
+let names = ['OCSVM', 'Autoencoder', 'Var Autoencoder', 'BiGAN']
 
 let name_max = names.reduce((t, c) => {
-  console.log(c)
-  console.log(c.length)
   return Math.max(c.length, t)
 }, 0)
 
@@ -77,7 +75,7 @@ export default function Index() {
   let [speed, setSpeed] = useState(3)
   let [initSpeed, setInitSpeed] = useState(false)
   let [pause, setPause] = useState(false)
-  let [info, setInfo] = useState(true)
+  let [info, setInfo] = useState(false)
   let [sort, setSort] = useState(0)
   let [finish, setFinish] = useState(false)
 
@@ -311,9 +309,9 @@ export default function Index() {
       let hx = h.getContext('2d')
 
       // update panel data
-      let panel_keys = [21, 20, 21, 20]
-      let record = data.data[frame]
-      let anomaly = record[19] === 1 ? true : false
+      let panel_keys = [19, 20, 21, 22]
+      let record = data[frame]
+      let anomaly = record[18] === 1 ? true : false
 
       if (anomaly) {
         vx.fillStyle = red
@@ -505,10 +503,20 @@ export default function Index() {
     setPleft(pleft)
 
     // get data
-    fetch('sampled.json')
+    fetch('combined.json')
       .then(r => r.json())
       .then(_data => {
-        setData(_data)
+        let formatted = _data.map(row =>
+          row.map(v => {
+            if (v.toString().indexOf('.') != -1) {
+              return Number.parseFloat(v).toFixed(2)
+            } else {
+              return parseInt(v)
+            }
+          })
+        )
+        let shuffled = _.shuffle(formatted)
+        setData(shuffled)
       })
   }, [])
 
@@ -621,7 +629,7 @@ export default function Index() {
                 }}
                 ref={con_ref}
               >
-                {data.data
+                {data
                   .slice(Math.max(frame - termheight + 1, 0), frame + 1)
                   .reverse()
                   .map((d, i) => (
@@ -640,10 +648,28 @@ export default function Index() {
                           left: cw / 2 - (size + 1) / 2 + cw,
                           height: size + 1,
                           width: size + 1,
-                          background: d[19] ? red : scheme.bg,
+                          background: d[18] ? red : scheme.bg,
                         }}
                       />
-                      {d.slice(0, 19).map((d, j) => (
+                      <div
+                        style={{
+                          display: 'flex',
+                          paddingLeft: '1ch',
+                          flexGrow: 1,
+                          position: 'relative',
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: '5ch',
+                            overflow: 'hidden',
+                            textAlign: 'right',
+                          }}
+                        >
+                          {frame + (termheight - i) - termheight}
+                        </div>
+                      </div>
+                      {d.slice(0, 18).map((d, j) => (
                         <div
                           style={{
                             display: 'flex',
@@ -659,9 +685,7 @@ export default function Index() {
                               textAlign: 'right',
                             }}
                           >
-                            {j === 0
-                              ? frame + (termheight - i) - termheight
-                              : d}
+                            {d}
                           </div>
                         </div>
                       ))}
