@@ -9,6 +9,7 @@ import Head from 'next/head'
 import Agent from '../components/agent'
 import { key_des } from '../components/constants'
 import * as _ from 'lodash'
+import FlipMove from 'react-flip-move'
 
 let scheme = {
   name: 'Paraiso Dark',
@@ -61,6 +62,7 @@ export default function Index() {
   let [pspace, setPspace] = useState(null)
   let [pleft, setPleft] = useState(null)
   let panels_ref = useRef([...Array(4)].map(n => [...Array(4)].map(n => 0)))
+  let ranksref = useRef([...Array(4)].map(n => createRef()))
   let pdim_ref = useRef([])
   let tdim_ref = useRef([])
   let title_ref = useRef(null)
@@ -78,6 +80,7 @@ export default function Index() {
   let [info, setInfo] = useState(false)
   let [sort, setSort] = useState(0)
   let [finish, setFinish] = useState(false)
+  let [ranks, setRanks] = useState(names.slice())
 
   useEffect(() => {
     if (data !== null) {
@@ -130,22 +133,6 @@ export default function Index() {
       let hx = h.getContext('2d')
       hx.scale(dpr, dpr)
 
-      let $rank = rankref.current
-      $rank.style.width = tw + 'px'
-      $rank.style.left = pleft + 'px'
-      let s = sref.current
-      let swidth = tw
-      let sheight = rlh * 4
-      s.width = swidth * dpr
-      s.height = sheight * dpr
-      s.style.width = swidth + 'px'
-      s.style.height = sheight + 'px'
-      let sx = s.getContext('2d')
-      sx.scale(dpr, dpr)
-
-      let ranklabel = ranklabel_ref.current
-      ranklabel.style.width = tw + 'px'
-
       vx.fillStyle = '#eee'
       for (let r = 0; r < pr; r++) {
         for (let c = 0; c < pc; c++) {
@@ -184,6 +171,14 @@ export default function Index() {
 
       let tb = topbar_ref.current
       tb.style.width = tw + 'px'
+
+      let $rank = rankref.current
+      $rank.style.width = tw - cw + 'px'
+      ranklabel_ref.current.style.width = tw - cw + 'px'
+      for (let r = 0; r < ranksref.current.length; r++) {
+        ranksref.current[r].current.childNodes[0].width = tw - cw
+        ranksref.current[r].current.childNodes[0].height = rlh + 1
+      }
 
       let icon = icon_ref.current
       icon.width = cw * dpr
@@ -415,74 +410,7 @@ export default function Index() {
           panels[i][6] = recall
         }
 
-        let vheight = v.height / dpr
-
-        // set rankings
-        {
-          let $rs = rankref.current.childNodes
-          let s = sref.current
-          let sx = s.getContext('2d')
-          sx.clearRect(0, 0, s.width / dpr, s.height / dpr)
-
-          let rank_rows = names.map((n, i) => {
-            let panel = panels[i]
-            return [i, n, panel[4], panel[5], panel[6]]
-          })
-          rank_rows.sort(function(a, b) {
-            return b[2 + sort] - a[2 + sort]
-          })
-          for (let i = 0; i < rank_rows.length; i++) {
-            let row = rank_rows[i]
-            let panel = panels[row[0]]
-            let [TP, FP, TN, FN] = panel
-            let $r = $rs[i]
-            let total = panel[0] + panel[1] + panel[2] + panel[3]
-
-            $r.childNodes[0].childNodes[0].innerHTML = i + 1
-            $r.childNodes[0].childNodes[1].style.background = bgs[row[0]]
-            $r.childNodes[0].childNodes[1].innerHTML = row[1]
-            $r.childNodes[1].childNodes[0].innerHTML = !isNaN(row[2])
-              ? row[2] + '% '
-              : 'N/A '
-            $r.childNodes[1].childNodes[1].innerHTML = `(${TP}+${TN})/${total}`
-            $r.childNodes[2].childNodes[0].innerHTML = !isNaN(row[3])
-              ? row[3] + '% '
-              : 'N/A '
-            $r.childNodes[2].childNodes[1].innerHTML = `${TP}/(${TP}+${FP})`
-            $r.childNodes[3].childNodes[0].innerHTML = !isNaN(row[4])
-              ? row[4] + '% '
-              : 'N/A '
-            $r.childNodes[3].childNodes[1].innerHTML = `${TP}/(${TP}+${FN})`
-
-            let y = i * rlh
-            let w = s.width / dpr
-            let h = rlh + 1
-            // sx.fillStyle = bgs[row[0]]
-            // sx.fillRect(0, y, w, h)
-
-            sx.fillStyle = scheme.fg
-            let xstep = s.width / dpr / 4
-            for (let c = 0; c < 3; c++) {
-              let x = (c + 1) * xstep
-              let w = (row[c + 2] / 100) * xstep - cw
-              if (w <= 0) w = 0
-              sx.fillRect(x, y, w, h)
-            }
-          }
-
-          let icon = icon_ref.current
-          let ix = icon.getContext('2d')
-          ix.clearRect(0, 0, cw, rlh)
-          let step = (rlh * 1.5) / 4
-          for (let i = 0; i < rank_rows.length; i++) {
-            let row = rank_rows[i]
-            let panel = panels[row[0]]
-            let y = i * step
-            let w = (panel[4] / 100) * cw
-            ix.fillStyle = bgs[row[0]]
-            ix.fillRect(0, y, w, step)
-          }
-        }
+        setRankings()
       }
 
       // finish line
@@ -492,7 +420,62 @@ export default function Index() {
         setPause(true)
       }
     }
-  }, [data, frame, sort])
+  }, [data, frame])
+
+  function setRankings() {
+    let panels = panels_ref.current
+
+    // set rankings
+    let rank_rows = names.map((n, i) => {
+      let panel = panels[i]
+      return [i, n, panel[4], panel[5], panel[6]]
+    })
+
+    for (let r = 0; r < names.length; r++) {
+      let $r = ranksref.current[r].current
+      let rc = $r.childNodes[0]
+      let rcx = rc.getContext('2d')
+      rcx.clearRect(0, 0, rc.width, rlh)
+      let row = rank_rows[r]
+      let h = rlh + 1
+      rcx.fillStyle = '#ccc'
+      let xstep = rc.width / dpr / 4
+      for (let c = 0; c < 3; c++) {
+        let x = (c + 1) * xstep
+        let w = (row[c + 2] / 100) * xstep - cw
+        if (w <= 0) w = 0
+        rcx.fillRect(x, 0, w, h)
+      }
+
+      let panel = panels[row[0]]
+      let [TP, FP, TN, FN] = panel
+      let total = panel[0] + panel[1] + panel[2] + panel[3]
+
+      $r.childNodes[2].childNodes[0].innerHTML = !isNaN(row[2])
+        ? row[2] + '% '
+        : 'N/A '
+      $r.childNodes[2].childNodes[1].innerHTML = `(${TP}+${TN})/${total}`
+      $r.childNodes[3].childNodes[0].innerHTML = !isNaN(row[3])
+        ? row[3] + '% '
+        : 'N/A '
+      $r.childNodes[3].childNodes[1].innerHTML = `${TP}/(${TP}+${FP})`
+      $r.childNodes[4].childNodes[0].innerHTML = !isNaN(row[4])
+        ? row[4] + '% '
+        : 'N/A '
+      $r.childNodes[4].childNodes[1].innerHTML = `${TP}/(${TP}+${FN})`
+    }
+
+    rank_rows.sort(function(a, b) {
+      return b[2 + sort] - a[2 + sort]
+    })
+    setRanks(rank_rows.map(o => o[1]))
+  }
+
+  useEffect(() => {
+    if (data !== null) {
+      setRankings()
+    }
+  }, [sort])
 
   useEffect(() => {
     let dpr = window.devicePixelRatio || 1
@@ -767,37 +750,84 @@ export default function Index() {
             ))}
           </div>
           <div
+            ref={rankref}
             style={{
               position: 'relative',
+              marginLeft: '1ch',
             }}
           >
-            <canvas
-              style={{ position: 'absolute', left: '1ch', top: 0 }}
-              ref={sref}
-            />
-            <div ref={rankref} style={{ position: 'relative' }}>
-              {names.map((n, i) => (
-                <div style={{ display: 'flex' }}>
-                  {[...Array(4)].map((n, j) => (
-                    <div style={{ width: '100%' }}>
-                      {j === 0 ? (
-                        <span style={{ marginRight: '1ch' }}></span>
-                      ) : null}
+            <div style={{ position: 'absolute', left: 0, top: 0 }}>
+              {[...Array(4)].map((n, i) => (
+                <div style={{}}>{i + 1}</div>
+              ))}
+            </div>
+            <FlipMove>
+              {ranks.map((name, i) => (
+                <div key={name}>
+                  <div
+                    ref={ranksref.current[names.indexOf(name)]}
+                    style={{
+                      display: 'flex',
+                      position: 'relative',
+                    }}
+                  >
+                    <canvas
+                      style={{
+                        position: 'absolute',
+                        left: 0,
+                        top: 0,
+                      }}
+                    />
+                    <div style={{ width: '100%', position: 'relative' }}>
+                      <div
+                        style={{
+                          display: 'inline-block',
+                          marginLeft: '2ch',
+                          paddingLeft: '0.5ch',
+                          paddingRight: '0.5ch',
+                          background: bgs[names.indexOf(name)],
+                        }}
+                      >
+                        {name}
+                      </div>
+                    </div>
+                    <div style={{ width: '100%', position: 'relative' }}>
                       <span
                         style={{
                           display: 'inline-block',
                           marginRight: '0.5ch',
                           paddingLeft: '0.5ch',
                           paddingRight: '0.5ch',
-                          textAlign: 'left',
                         }}
                       ></span>
                       <span style={{ color: scheme.light }}></span>
                     </div>
-                  ))}
+                    <div style={{ width: '100%', position: 'relative' }}>
+                      <span
+                        style={{
+                          display: 'inline-block',
+                          marginRight: '0.5ch',
+                          paddingLeft: '0.5ch',
+                          paddingRight: '0.5ch',
+                        }}
+                      ></span>
+                      <span style={{ color: scheme.light }}></span>
+                    </div>
+                    <div style={{ width: '100%', position: 'relative' }}>
+                      <span
+                        style={{
+                          display: 'inline-block',
+                          marginRight: '0.5ch',
+                          paddingLeft: '0.5ch',
+                          paddingRight: '0.5ch',
+                        }}
+                      ></span>
+                      <span style={{ color: scheme.light }}></span>
+                    </div>
+                  </div>
                 </div>
               ))}
-            </div>
+            </FlipMove>
           </div>
           <div
             style={{
