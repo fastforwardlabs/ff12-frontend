@@ -425,7 +425,7 @@ export default function Index() {
       let row = rank_rows[r]
       let h = rlh + 1
       rcx.fillStyle = '#ccc'
-      let xstep = rc.width / dpr / 4
+      let xstep = rc.width / 4
       for (let c = 0; c < 3; c++) {
         let x = (c + 1) * xstep
         let w = (row[c + 2] / 100) * xstep - cw
@@ -708,7 +708,7 @@ export default function Index() {
           >
             STRATEGIES
           </div>
-          <div style={{ overflowX: 'auto' }}>
+          <div style={{ overflowX: 'auto', overflowY: 'hidden' }}>
             <div
               ref={ranklabel_ref}
               style={{
