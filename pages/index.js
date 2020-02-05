@@ -94,29 +94,37 @@ export default function Index() {
       let pdim = pdim_ref.current
       let tdim = tdim_ref.current
 
+      let stacked = false
+      let lc = 2
+      if (window.innerWidth <= 801) stacked = true
+      if (window.innerWidth <= 801) lc = 1
+
       let columns = Math.floor(v.width / size)
-      let panel_columns = Math.floor(
-        Math.floor((v.width / dpr - size * 4) / size) / 2
+      let panel_columns = Math.min(
+        Math.floor(
+          Math.floor((v.width / dpr - (stacked ? 0 : size * 4)) / size) / lc
+        ),
+        300
       )
       let panel_rows = Math.ceil(10000 / (panel_columns - 2))
 
       let pw = panel_columns * size
       let ph = panel_rows * size
 
-      let pc = 2
-      let pr = 2
+      let pc = lc
+      let pr = 4 / lc
 
       let top = rlh
       let bottom = rlh * 2
       let bottom_space = rlh / 2
 
-      let tc = panel_columns * 2 + 4
+      let tc = panel_columns * lc + 4
       let tr = Math.ceil(10000 / (columns - 1))
       let tw = tc * size
       let th = tr * size
       tdim_ref.current = [tw, th]
 
-      let vheight = (top + ph + bottom + bottom_space) * 2
+      let vheight = (top + ph + bottom + bottom_space) * pr
       v.height = vheight * dpr
 
       v.style.width = vwidth + 'px'
@@ -173,10 +181,11 @@ export default function Index() {
       tb.style.width = tw + 'px'
 
       let $rank = rankref.current
-      $rank.style.width = tw - cw + 'px'
-      ranklabel_ref.current.style.width = tw - cw + 'px'
+      let ranking_width = Math.max(ch * 74, tw)
+      $rank.style.width = ranking_width - cw + 'px'
+      ranklabel_ref.current.style.width = ranking_width - cw + 'px'
       for (let r = 0; r < ranksref.current.length; r++) {
-        ranksref.current[r].current.childNodes[0].width = tw - cw
+        ranksref.current[r].current.childNodes[0].width = ranking_width - cw
         ranksref.current[r].current.childNodes[0].height = rlh + 1
       }
 
@@ -468,6 +477,20 @@ export default function Index() {
     rank_rows.sort(function(a, b) {
       return b[2 + sort] - a[2 + sort]
     })
+
+    let icon = icon_ref.current
+    let ix = icon.getContext('2d')
+    ix.clearRect(0, 0, cw, rlh)
+    let step = (rlh * 1.5) / 4
+    for (let i = 0; i < rank_rows.length; i++) {
+      let row = rank_rows[i]
+      let panel = panels[row[0]]
+      let y = i * step
+      let w = (panel[4] / 100) * cw
+      ix.fillStyle = bgs[row[0]]
+      ix.fillRect(0, y, w, step)
+    }
+
     setRanks(rank_rows.map(o => o[1]))
   }
 
@@ -698,136 +721,138 @@ export default function Index() {
           >
             STRATEGIES
           </div>
-          <div
-            ref={ranklabel_ref}
-            style={{
-              marginLeft: '1ch',
-              fontStyle: 'italic',
-              display: 'flex',
-            }}
-          >
-            <div style={{ width: '100%' }}>Ranking</div>
-            {[
-              [
-                'Accuracy',
-                '(TP+TN)/ALL',
-                '(True Positive + True Negative) / ALL',
-              ],
-              [
-                'Precision',
-                'TP/(TP+FP)',
-                'True Positive / (True Positive + False Positive)',
-              ],
-              [
-                'Recall',
-                'TP/(TP+FN)',
-                'True Positive / (True Positive + False Negative)',
-              ],
-            ].map((n, i) => (
-              <div style={{ width: '100%' }}>
-                {sort === i ? (
-                  <span title={`Rankings sorted by ${sort_options[i]}`}>
-                    {n[0]}
-                  </span>
-                ) : (
-                  <button
-                    title={`Click to sort by ${sort_options[i]}`}
-                    onClick={() => {
-                      setSort(i)
-                    }}
-                    style={{ fontStyle: 'italic' }}
-                  >
-                    {n[0]}
-                  </button>
-                )}{' '}
-                <span
-                  style={{ color: scheme.light, fontStyle: 'normal' }}
-                  title={n[2]}
-                >
-                  {n[1]}
-                </span>
-              </div>
-            ))}
-          </div>
-          <div
-            ref={rankref}
-            style={{
-              position: 'relative',
-              marginLeft: '1ch',
-            }}
-          >
-            <div style={{ position: 'absolute', left: 0, top: 0 }}>
-              {[...Array(4)].map((n, i) => (
-                <div style={{}}>{i + 1}</div>
-              ))}
-            </div>
-            <FlipMove>
-              {ranks.map((name, i) => (
-                <div key={name}>
-                  <div
-                    ref={ranksref.current[names.indexOf(name)]}
-                    style={{
-                      display: 'flex',
-                      position: 'relative',
-                    }}
-                  >
-                    <canvas
-                      style={{
-                        position: 'absolute',
-                        left: 0,
-                        top: 0,
+          <div style={{ overflowX: 'auto' }}>
+            <div
+              ref={ranklabel_ref}
+              style={{
+                marginLeft: '1ch',
+                fontStyle: 'italic',
+                display: 'flex',
+              }}
+            >
+              <div style={{ width: '100%' }}>Ranking</div>
+              {[
+                [
+                  'Accuracy',
+                  '(TP+TN)/ALL',
+                  '(True Positive + True Negative) / ALL',
+                ],
+                [
+                  'Precision',
+                  'TP/(TP+FP)',
+                  'True Positive / (True Positive + False Positive)',
+                ],
+                [
+                  'Recall',
+                  'TP/(TP+FN)',
+                  'True Positive / (True Positive + False Negative)',
+                ],
+              ].map((n, i) => (
+                <div style={{ width: '100%' }}>
+                  {sort === i ? (
+                    <span title={`Rankings sorted by ${sort_options[i]}`}>
+                      {n[0]}
+                    </span>
+                  ) : (
+                    <button
+                      title={`Click to sort by ${sort_options[i]}`}
+                      onClick={() => {
+                        setSort(i)
                       }}
-                    />
-                    <div style={{ width: '100%', position: 'relative' }}>
-                      <div
-                        style={{
-                          display: 'inline-block',
-                          marginLeft: '2ch',
-                          paddingLeft: '0.5ch',
-                          paddingRight: '0.5ch',
-                          background: bgs[names.indexOf(name)],
-                        }}
-                      >
-                        {name}
-                      </div>
-                    </div>
-                    <div style={{ width: '100%', position: 'relative' }}>
-                      <span
-                        style={{
-                          display: 'inline-block',
-                          marginRight: '0.5ch',
-                          paddingLeft: '0.5ch',
-                          paddingRight: '0.5ch',
-                        }}
-                      ></span>
-                      <span style={{ color: scheme.light }}></span>
-                    </div>
-                    <div style={{ width: '100%', position: 'relative' }}>
-                      <span
-                        style={{
-                          display: 'inline-block',
-                          marginRight: '0.5ch',
-                          paddingLeft: '0.5ch',
-                          paddingRight: '0.5ch',
-                        }}
-                      ></span>
-                      <span style={{ color: scheme.light }}></span>
-                    </div>
-                    <div style={{ width: '100%', position: 'relative' }}>
-                      <span
-                        style={{
-                          display: 'inline-block',
-                          marginRight: '0.5ch',
-                          paddingLeft: '0.5ch',
-                          paddingRight: '0.5ch',
-                        }}
-                      ></span>
-                      <span style={{ color: scheme.light }}></span>
-                    </div>
-                  </div>
+                      style={{ fontStyle: 'italic' }}
+                    >
+                      {n[0]}
+                    </button>
+                  )}{' '}
+                  <span
+                    style={{ color: scheme.light, fontStyle: 'normal' }}
+                    title={n[2]}
+                  >
+                    {n[1]}
+                  </span>
                 </div>
               ))}
-            </FlipMove>
+            </div>
+            <div
+              ref={rankref}
+              style={{
+                position: 'relative',
+                marginLeft: '1ch',
+              }}
+            >
+              <div style={{ position: 'absolute', left: 0, top: 0 }}>
+                {[...Array(4)].map((n, i) => (
+                  <div style={{}}>{i + 1}</div>
+                ))}
+              </div>
+              <FlipMove>
+                {ranks.map((name, i) => (
+                  <div key={name}>
+                    <div
+                      ref={ranksref.current[names.indexOf(name)]}
+                      style={{
+                        display: 'flex',
+                        position: 'relative',
+                      }}
+                    >
+                      <canvas
+                        style={{
+                          position: 'absolute',
+                          left: 0,
+                          top: 0,
+                        }}
+                      />
+                      <div style={{ width: '100%', position: 'relative' }}>
+                        <div
+                          style={{
+                            display: 'inline-block',
+                            marginLeft: '2ch',
+                            paddingLeft: '0.5ch',
+                            paddingRight: '0.5ch',
+                            background: bgs[names.indexOf(name)],
+                          }}
+                        >
+                          {name}
+                        </div>
+                      </div>
+                      <div style={{ width: '100%', position: 'relative' }}>
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            marginRight: '0.5ch',
+                            paddingLeft: '0.5ch',
+                            paddingRight: '0.5ch',
+                          }}
+                        ></span>
+                        <span style={{ color: scheme.light }}></span>
+                      </div>
+                      <div style={{ width: '100%', position: 'relative' }}>
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            marginRight: '0.5ch',
+                            paddingLeft: '0.5ch',
+                            paddingRight: '0.5ch',
+                          }}
+                        ></span>
+                        <span style={{ color: scheme.light }}></span>
+                      </div>
+                      <div style={{ width: '100%', position: 'relative' }}>
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            marginRight: '0.5ch',
+                            paddingLeft: '0.5ch',
+                            paddingRight: '0.5ch',
+                          }}
+                        ></span>
+                        <span style={{ color: scheme.light }}></span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </FlipMove>
+            </div>
           </div>
           <div
             style={{
@@ -839,7 +864,7 @@ export default function Index() {
             VISUALIZED
           </div>
 
-          <div style={{ position: 'relative' }}>
+          <div style={{ position: 'relative', overflowX: 'auto' }}>
             <canvas ref={vref} style={{}} />
             <canvas
               ref={href}
@@ -872,18 +897,24 @@ export default function Index() {
               {[...Array(4)].map(() => (
                 <div style={{ display: 'flex' }}>
                   {[
-                    ['True Pos', red],
-                    ['False Pos', black],
-                    ['True Neg', black],
-                    ['False Neg', red],
+                    ['True Positive', red],
+                    ['False Positive', black],
+                    ['True Negative', black],
+                    ['False Negative', red],
                   ].map((o, i) => (
                     <div
-                      style={{ width: '100%', marginLeft: i === 2 ? '1ch' : 0 }}
+                      style={{
+                        width: 'calc(25% - 0.25ch)',
+                        marginLeft: i === 2 ? '1ch' : 0,
+                      }}
                     >
                       <div
                         style={{
                           background: scheme.fg,
                           fontStyle: 'italic',
+                          overflow: 'hidden',
+                          whiteSpace: 'nowrap',
+                          textOverflow: 'ellipsis',
                         }}
                       >
                         {o[0]}
@@ -1045,7 +1076,7 @@ export default function Index() {
                 }}
                 style={{
                   width: '80ch',
-                  maxWidth: '100%',
+                  maxWidth: 'calc(100% - 2ch)',
                   background: scheme.bg,
                   color: scheme.fg,
                   marginLeft: 'auto',
@@ -1175,17 +1206,12 @@ export default function Index() {
                   {frame != finish_line - 1 ? (
                     <div style={{ textAlign: 'right' }}>
                       <button
-                        style={{
-                          background: scheme.bg,
-                          color: '#fff',
-                          paddingLeft: '0.5ch',
-                          paddingRight: '0.5ch',
-                        }}
+                        style={{}}
                         onClick={() => {
                           setInfo(false)
                         }}
                       >
-                        Start the simulation
+                        {frame > 1 ? 'Continue' : 'Start'} the simulation
                       </button>
                     </div>
                   ) : null}
@@ -1214,7 +1240,8 @@ export default function Index() {
                 }}
                 style={{
                   width: '80ch',
-                  maxWidth: '100%',
+                  maxWidth: 'calc(100% - 2ch)',
+                  background: scheme.bg,
                   background: scheme.bg,
                   color: scheme.fg,
                   marginLeft: 'auto',
