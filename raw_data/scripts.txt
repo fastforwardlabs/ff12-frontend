@@ -1,0 +1,5 @@
+# make short 8000 short inliers
+jq '.[0:8000] | map(to_entries | [.[].value])' test_inliers.json > inliers_short.json
+
+# get keys
+jq '.[0] | to_entries | map(.key)' test_inliers.json
