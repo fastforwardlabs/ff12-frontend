@@ -4,6 +4,7 @@ import React, {
   useRef,
   createRef,
   useCallback,
+  useLayoutEffect,
 } from 'react'
 import Head from 'next/head'
 import Agent from '../components/agent'
@@ -80,6 +81,8 @@ export default function Index() {
   let [sort, setSort] = useState(0)
   let [finish, setFinish] = useState(false)
   let [ranks, setRanks] = useState(names.slice())
+  let [skipping, setSkipping] = useState(false)
+  let [skiprelay, setSkiprelay] = useState(false)
 
   useEffect(() => {
     if (data !== null) {
@@ -282,7 +285,7 @@ export default function Index() {
     setInitSpeed(true)
   }, [data])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (initSpeed != false) {
       if (handler_ref.current !== null) {
         window.clearRInterval(handler_ref.current)
@@ -296,6 +299,33 @@ export default function Index() {
       }
     }
   }, [speed, pause, info])
+
+  function restart() {
+    if (handler_ref.current !== null) {
+      window.clearRInterval(handler_ref.current)
+    }
+
+    // get data
+    fetch('combined.json')
+      .then(r => r.json())
+      .then(_data => {
+        let formatted = _data.map(row =>
+          row.map(v => {
+            if (v.toString().indexOf('.') != -1) {
+              return Number.parseFloat(v).toFixed(2)
+            } else {
+              return parseInt(v)
+            }
+          })
+        )
+        let shuffled = _.shuffle(formatted)
+        setData(shuffled)
+      })
+
+    setFrame(0)
+    panels_ref.current = [...Array(4)].map(n => [...Array(4)].map(n => 0))
+    setPause(false)
+  }
 
   function processFrame(frame) {
     if (frame < data.length && frame < finish_line - 1) {
@@ -421,7 +451,7 @@ export default function Index() {
       let $r = ranksref.current[r].current
       let rc = $r.childNodes[0]
       let rcx = rc.getContext('2d')
-      rcx.clearRect(0, 0, rc.width, rlh)
+      rcx.clearRect(0, 0, rc.width, rlh + 1)
       let row = rank_rows[r]
       let h = rlh + 1
       rcx.fillStyle = '#ccc'
@@ -471,14 +501,28 @@ export default function Index() {
     setRanks(rank_rows.map(o => o[1]))
   }
 
+  useEffect(() => {
+    if (skiprelay) {
+      for (let i = frame; i < finish_line - 1; i++) {
+        processFrame(i)
+      }
+      setFrame(finish_line - 1)
+      setSkipping(false)
+      setSkiprelay(false)
+    }
+  }, [skiprelay])
+
+  useEffect(() => {
+    if (skipping) {
+      if (handler_ref.current !== null) {
+        window.clearRInterval(handler_ref.current)
+      }
+      setSkiprelay(true)
+    }
+  }, [skipping])
+
   function skipFinish() {
-    if (handler_ref.current !== null) {
-      window.clearRInterval(handler_ref.current)
-    }
-    for (let i = frame; i < finish_line - 1; i++) {
-      processFrame(i)
-    }
-    setFrame(finish_line - 1)
+    setSkipping(true)
   }
 
   useEffect(() => {
@@ -933,6 +977,10 @@ export default function Index() {
             <a href="https://www.cloudera.com/products/fast-forward-labs-research.html">
               Cloudera Fast Forward
             </a>
+            . See more demos on our{' '}
+            <a href="https://experiments.fastforwardlabs.com">
+              experiments page
+            </a>
             .
           </div>
           <div
@@ -1049,6 +1097,16 @@ export default function Index() {
                 }}
               >
                 Skip to finish
+              </button>
+            ) : null}
+            {frame + 1 > finish_line - 1 ? (
+              <button
+                style={{ marginLeft: '' }}
+                onClick={() => {
+                  restart()
+                }}
+              >
+                Restart
               </button>
             ) : null}
           </div>
@@ -1190,9 +1248,9 @@ export default function Index() {
                     strategy's performance. Each connection is visualized as a
                     square. If it is classified as an attack it is placed on the
                     left; if classified normal, it is placed on the right. The
-                    color reveals its true status. Over time the density and
+                    color reveals its true status. Over time, the density and
                     position of the colors in each strategy visualization give
-                    you a feel for the different models strengths and
+                    you a feel for the different models' strengths and
                     weaknesses.
                   </div>
                   <div style={{ marginBottom: rlh / 2 }}>
@@ -1349,6 +1407,32 @@ export default function Index() {
                     <a href="#">the prototype section of our report</a>.
                   </div>
                 </div>
+              </div>
+            </div>
+          ) : null}
+          {skipping ? (
+            <div
+              style={{
+                position: 'fixed',
+                left: 0,
+                top: 0,
+                right: 0,
+                bottom: 0,
+                zIndex: 999,
+                background: 'rgba(0,0,0,0.2)',
+                cursor: 'progress',
+              }}
+            >
+              <div
+                style={{
+                  textAlign: 'center',
+                  background: scheme.bg,
+                  color: 'white',
+                  height: rlh,
+                  cursor: 'progress',
+                }}
+              >
+                Skipping...
               </div>
             </div>
           ) : null}
