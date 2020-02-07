@@ -304,6 +304,7 @@ export default function Index() {
     if (handler_ref.current !== null) {
       window.clearRInterval(handler_ref.current)
     }
+    setInitSpeed(false)
 
     // get data
     fetch('combined.json')
