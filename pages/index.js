@@ -571,7 +571,7 @@ export default function Index() {
       </div>
       <div
         style={{
-          background: '#bbb',
+          background: '#ccc',
           height: rlh,
           position: 'sticky',
           top: 0,
@@ -991,7 +991,7 @@ export default function Index() {
               bottom: 0,
               right: 0,
               height: rlh,
-              background: '#bbb',
+              background: '#ccc',
               paddingLeft: '1ch',
               display: 'flex',
             }}
