@@ -284,7 +284,7 @@ __webpack_require__.r(__webpack_exports__);
 
 var initGA = function initGA() {
   // console.log('GA init')
-  react_ga__WEBPACK_IMPORTED_MODULE_0__["default"].initialize('UA-140718127-2');
+  react_ga__WEBPACK_IMPORTED_MODULE_0__["default"].initialize('UA-140718127-3');
 };
 var logPageView = function logPageView() {
   // console.log(`Logging pageview for ${window.location.pathname}`)
