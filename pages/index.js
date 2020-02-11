@@ -10,6 +10,7 @@ import Head from 'next/head'
 import Agent from '../components/agent'
 import { key_des } from '../components/constants'
 import * as _ from 'lodash'
+import { initGA, logPageView } from '../parts/Analytics'
 import FlipMove from 'react-flip-move'
 
 let scheme = {
@@ -558,6 +559,12 @@ export default function Index() {
         let shuffled = _.shuffle(formatted)
         setData(shuffled)
       })
+
+    if (!window.GA_INITIALIZED) {
+      initGA()
+      window.GA_INITIALIZED = true
+    }
+    logPageView()
   }, [])
 
   return (
