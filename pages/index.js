@@ -38,7 +38,7 @@ let cell = { w: ch, h: rlh / 2 }
 
 let speeds = [640 * 2, 640, 320, 80, 40, 20]
 
-let names = ['OCSVM', 'Autoencoder', 'Var Autoencoder', 'BiGAN']
+let names = ['PCA', 'OCSVM', 'Autoencoder', 'BiGAN']
 
 let name_max = names.reduce((t, c) => {
   return Math.max(c.length, t)
