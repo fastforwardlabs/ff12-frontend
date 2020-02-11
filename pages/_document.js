@@ -34,18 +34,6 @@ class MyDocument extends Document {
           <Main />
           <NextScript />
         </body>
-
-        <script
-          async
-          src="https://www.googletagmanager.com/gtag/js?id=UA-140718127-3"
-        ></script>
-        <script>
-          {`window.dataLayer = window.dataLayer || [];
-          function gtag(){dataLayer.push(arguments);}
-          gtag('js', new Date());
-
-          gtag('config', 'UA-140718127-3');`}
-        </script>
       </Html>
     )
   }
