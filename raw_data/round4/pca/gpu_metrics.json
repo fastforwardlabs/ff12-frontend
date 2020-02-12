@@ -1,0 +1,1 @@
+{"weightsize": 1.2333984375, "parameterss": 0, "traintime": 0.2133960723876953, "history": [], "inferencetime": 0.003192901611328125, "testscores": {"acc": 0.9365, "precision": 0.9769392033542977, "recall": 0.699, "f1": 0.8149227630428446, "f2": 0.7411727282366662, "roc": 0.7710402812499999, "threshold": 5.899}}

@@ -117,7 +117,7 @@ export default function Index() {
       let pr = 4 / lc
 
       let top = rlh
-      let bottom = rlh * 2
+      let bottom = rlh
       let bottom_space = rlh / 2
 
       let tc = panel_columns * lc + (stacked ? 0 : 4)
@@ -401,21 +401,30 @@ export default function Index() {
         hx.fillStyle = vx.fillStyle
         hx.fillRect(dim[0] + p1x, dim[1] + p1y, size + 1, size + 1)
 
+        let labels = ['TP', 'FP', 'TN', 'FN']
         for (let j = 0; j < 4; j++) {
-          $read.childNodes[i].childNodes[j].childNodes[1].innerHTML = panel[j]
+          $read.childNodes[i].childNodes[j].childNodes[0].innerHTML =
+            panel[j] + ' <em>' + labels[j] + '</em>'
         }
 
         //accuracy = (TP+TN)/(TP+TN+FP+FN)
-        let accuracy = Math.round(
-          ((panel[0] + panel[2]) /
+        let accuracy = (
+          (((panel[0] + panel[2]) /
             (panel[0] + panel[1] + panel[2] + panel[3])) *
-            100
-        )
+            1000) /
+          10
+        ).toFixed(1)
+
         // precision tp / (tp + fp)
-        let precision = Math.round((panel[0] / (panel[0] + panel[1])) * 100)
+        let precision = (
+          ((panel[0] / (panel[0] + panel[1])) * 1000) /
+          10
+        ).toFixed(1)
 
         // recall tp / (tp + fn)
-        let recall = Math.round((panel[0] / (panel[0] + panel[3])) * 100)
+        let recall = (((panel[0] / (panel[0] + panel[3])) * 1000) / 10).toFixed(
+          1
+        )
 
         // 4 5 6
         panels[i][4] = accuracy
@@ -803,10 +812,7 @@ export default function Index() {
                       {n[0]}
                     </button>
                   )}{' '}
-                  <span
-                    style={{ color: scheme.light, fontStyle: 'normal' }}
-                    title={n[2]}
-                  >
+                  <span style={{ color: scheme.light }} title={n[2]}>
                     {n[1]}
                   </span>
                 </div>
@@ -942,6 +948,7 @@ export default function Index() {
                     ['False Negative', red],
                   ].map((o, i) => (
                     <div
+                      title={o[0]}
                       style={{
                         width: 'calc(25% - 0.25ch)',
                         marginLeft: i === 2 ? '1ch' : 0,
@@ -949,22 +956,14 @@ export default function Index() {
                     >
                       <div
                         style={{
-                          background: scheme.fg,
-                          fontStyle: 'italic',
-                          overflow: 'hidden',
-                          whiteSpace: 'nowrap',
-                          textOverflow: 'ellipsis',
-                        }}
-                      >
-                        {o[0]}
-                      </div>
-                      <div
-                        style={{
                           background: o[1],
                           height: rlh,
                           color: 'white',
                           textAlign: 'right',
                           paddingRight: '1ch',
+                          paddingLeft: '1ch',
+                          textAlign: i < 2 ? 'left' : 'right',
+                          pointerEvents: 'none',
                         }}
                       ></div>
                     </div>
