@@ -189,7 +189,7 @@ export default function Index() {
       tb.style.width = tw + 'px'
 
       let $rank = rankref.current
-      let ranking_width = Math.max(ch * 74, tw)
+      let ranking_width = Math.max(ch * 80, tw)
       $rank.style.width = ranking_width - cw + 'px'
       ranklabel_ref.current.style.width = ranking_width - cw + 'px'
       for (let r = 0; r < ranksref.current.length; r++) {
@@ -1325,14 +1325,14 @@ export default function Index() {
                       style={{
                         display: 'flex',
                         justifyContent: 'space-between',
-                        paddingBottom: rlh / 4,
                         marginBottom: rlh / 4,
+                        marginTop: rlh / 4,
                       }}
                     >
                       <div
                         style={{
                           paddingTop: rlh / 4,
-                          marginTop: rlh / 4,
+                          paddingBottom: rlh / 4,
                           width: 'calc(50% - 0.5ch)',
                           paddingLeft: '1ch',
                           paddingRight: '1ch',
@@ -1345,7 +1345,7 @@ export default function Index() {
                       <div
                         style={{
                           paddingTop: rlh / 4,
-                          marginTop: rlh / 4,
+                          paddingBottom: rlh / 4,
                           width: 'calc(50% - 0.5ch)',
                           paddingLeft: '1ch',
                           paddingRight: '1ch',
@@ -1454,65 +1454,73 @@ export default function Index() {
                     The final standings:
                   </div>
 
-                  <div
-                    style={{
-                      display: 'flex',
-                      fontStyle: 'italic',
-                    }}
-                  >
-                    {['Ranking', 'Accuracy', 'Precision', 'Recall'].map(n => (
-                      <div style={{ width: '100%' }}>{n}</div>
-                    ))}
-                  </div>
+                  <div style={{ width: '100%', overflowX: 'auto' }}>
+                    <div style={{ minWidth: '60ch' }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          fontStyle: 'italic',
+                        }}
+                      >
+                        {['Ranking', 'Accuracy', 'Precision', 'Recall'].map(
+                          n => (
+                            <div style={{ width: '100%' }}>{n}</div>
+                          )
+                        )}
+                      </div>
 
-                  <div style={{ marginBottom: rlh }}>
-                    {names
-                      .map((n, i) => {
-                        let panel = panels_ref.current[i]
-                        return [i, n, panel[4], panel[5], panel[6]]
-                      })
-                      .sort(function(a, b) {
-                        return b[2 + sort] - a[2 + sort]
-                      })
-                      .map((r, i) => (
-                        <div style={{ display: 'flex' }}>
-                          <div style={{ width: '100%' }}>
-                            {i + 1}{' '}
-                            <span
-                              style={{
-                                background: bgs[r[0]],
-                                display: 'inline-block',
-                                paddingLeft: '0.5ch',
-                                paddingRight: '0.5ch',
-                              }}
-                            >
-                              {r[1]}
-                            </span>
-                          </div>
+                      <div style={{ marginBottom: rlh }}>
+                        {names
+                          .map((n, i) => {
+                            let panel = panels_ref.current[i]
+                            return [i, n, panel[4], panel[5], panel[6]]
+                          })
+                          .sort(function(a, b) {
+                            return b[2 + sort] - a[2 + sort]
+                          })
+                          .map((r, i) => (
+                            <div style={{ display: 'flex' }}>
+                              <div style={{ width: '100%' }}>
+                                {i + 1}{' '}
+                                <span
+                                  style={{
+                                    background: bgs[r[0]],
+                                    display: 'inline-block',
+                                    paddingLeft: '0.5ch',
+                                    paddingRight: '0.5ch',
+                                  }}
+                                >
+                                  {r[1]}
+                                </span>
+                              </div>
 
-                          {[r[2], r[3], r[4]].map(v => (
-                            <div
-                              style={{
-                                width: '100%',
-                                position: 'relative',
-                                paddingLeft: '0.5ch',
-                              }}
-                            >
-                              <div
-                                style={{
-                                  position: 'absolute',
-                                  left: 0,
-                                  top: 0,
-                                  height: rlh,
-                                  background: '#ccc',
-                                  width: `calc(${v}% - 1ch)`,
-                                }}
-                              />
-                              <div style={{ position: 'relative' }}>{v}%</div>
+                              {[r[2], r[3], r[4]].map(v => (
+                                <div
+                                  style={{
+                                    width: '100%',
+                                    position: 'relative',
+                                    paddingLeft: '0.5ch',
+                                  }}
+                                >
+                                  <div
+                                    style={{
+                                      position: 'absolute',
+                                      left: 0,
+                                      top: 0,
+                                      height: rlh,
+                                      background: '#ccc',
+                                      width: `calc(${v}% - 1ch)`,
+                                    }}
+                                  />
+                                  <div style={{ position: 'relative' }}>
+                                    {v}%
+                                  </div>
+                                </div>
+                              ))}
                             </div>
                           ))}
-                        </div>
-                      ))}
+                      </div>
+                    </div>
                   </div>
 
                   <div>
