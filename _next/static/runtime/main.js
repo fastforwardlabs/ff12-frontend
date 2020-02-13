@@ -5139,7 +5139,7 @@ function connect(options) {
       error.name = err.name;
       error.stack = err.stack; // __NEXT_DIST_DIR is provided by webpack
 
-      (0, _sourceMapSupport.rewriteStacktrace)(error, "/home/grant/sites/ff12-frontend/.next");
+      (0, _sourceMapSupport.rewriteStacktrace)(error, "/home/grant/s/ff12-frontend/.next");
       return error;
     }
   };
