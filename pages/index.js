@@ -81,6 +81,7 @@ export default function Index() {
   let [dpr, setDpr] = useState(1)
   let icon_ref = useRef(null)
   let con_ref = useRef(null)
+  let startbutton_ref = useRef(null)
   let [speed, setSpeed] = useState(3)
   let [initSpeed, setInitSpeed] = useState(false)
   let [pause, setPause] = useState(false)
@@ -1323,16 +1324,35 @@ export default function Index() {
                     <div
                       style={{
                         display: 'flex',
-                        marginTop: rlh / 4,
+                        justifyContent: 'space-between',
+                        paddingBottom: rlh / 4,
                         marginBottom: rlh / 4,
                       }}
                     >
-                      <div style={{ width: '50%' }}>
+                      <div
+                        style={{
+                          paddingTop: rlh / 4,
+                          marginTop: rlh / 4,
+                          width: 'calc(50% - 0.5ch)',
+                          paddingLeft: '1ch',
+                          paddingRight: '1ch',
+                          background: '#ddd',
+                        }}
+                      >
                         If it is classified as an attack it is placed on the
                         left.
                       </div>
-
-                      <div style={{ width: '50%', textAlign: 'right' }}>
+                      <div
+                        style={{
+                          paddingTop: rlh / 4,
+                          marginTop: rlh / 4,
+                          width: 'calc(50% - 0.5ch)',
+                          paddingLeft: '1ch',
+                          paddingRight: '1ch',
+                          background: '#ddd',
+                          textAlign: 'right',
+                        }}
+                      >
                         If it is classified as normal it is placed on the right.
                       </div>
                     </div>
@@ -1343,7 +1363,7 @@ export default function Index() {
                       </span>
                       . Over time the density and position of the colors in each
                       strategy visualization give you a feel for the different
-                      models strengths and weaknesses.
+                      models' strengths and weaknesses.
                     </div>
                   </div>
                   <div style={{ marginBottom: rlh / 2 }}>
@@ -1354,6 +1374,7 @@ export default function Index() {
                   {frame != finish_line - 1 ? (
                     <div style={{ textAlign: 'right' }}>
                       <button
+                        ref={startbutton_ref}
                         style={{}}
                         onClick={() => {
                           setInfo(false)
@@ -1609,6 +1630,9 @@ export default function Index() {
           padding: 0;
           margin: 0;
           cursor: pointer;
+        }
+        button:focus {
+          outline: dotted 1px black;
         }
         .animate {
           padding-left: 0.5ch;
