@@ -1133,6 +1133,7 @@ export default function Index() {
                 bottom: 0,
                 zIndex: 999,
                 background: 'rgba(0,0,0,0.2)',
+                overflow: 'auto',
               }}
               onClick={() => {
                 setInfo(false)
@@ -1245,7 +1246,7 @@ export default function Index() {
                     <span
                       style={{
                         background: scheme.bg,
-                        color: scheme.fg,
+                        color: 'white',
                         paddingLeft: '0.5ch',
                         paddingRight: '0.5ch',
                       }}
@@ -1258,28 +1259,91 @@ export default function Index() {
                     The STRATEGIES section shows metrics on how each algorithm
                     is performing on the incoming data. You can see the
                     accuracy, recall, and precision metrics for each strategy.
+                    The metrics are calculated using the number of{' '}
+                    <span
+                      style={{
+                        background: red,
+                        paddingLeft: '0.5ch',
+                        paddingRight: '0.5ch',
+                      }}
+                    >
+                      True Positives
+                    </span>{' '}
+                    (attacks classified as attacks),{' '}
+                    <span
+                      style={{
+                        background: scheme.bg,
+                        color: 'white',
+                        paddingLeft: '0.5ch',
+                        paddingRight: '0.5ch',
+                      }}
+                    >
+                      False Positives
+                    </span>{' '}
+                    (normal connections classified as attacks),{' '}
+                    <span
+                      style={{
+                        background: scheme.bg,
+                        color: 'white',
+                        paddingLeft: '0.5ch',
+                        paddingRight: '0.5ch',
+                      }}
+                    >
+                      True Negatives
+                    </span>{' '}
+                    (normal connections classified as normal), and{' '}
+                    <span
+                      style={{
+                        background: red,
+                        paddingLeft: '0.5ch',
+                        paddingRight: '0.5ch',
+                      }}
+                    >
+                      False Negatives
+                    </span>{' '}
+                    (attacks classified as normal connections) for each
+                    algorithm.
                   </div>
                   <div style={{ marginBottom: rlh / 2 }}>
                     <div>
                       The VISUALIZED section provides another view of each
                       strategy's performance. Each connection is visualized as a
-                      square.
+                      square{' '}
+                      <span
+                        style={{
+                          display: 'inline-block',
+                          width: size,
+                          height: size,
+                          background: scheme.bg,
+                          position: 'relative',
+                          top: -2,
+                        }}
+                      ></span>
                     </div>
-                    <div style={{ display: 'flex' }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        marginTop: rlh / 4,
+                        marginBottom: rlh / 4,
+                      }}
+                    >
                       <div style={{ width: '50%' }}>
                         If it is classified as an attack it is placed on the
-                        left
+                        left.
                       </div>
 
                       <div style={{ width: '50%', textAlign: 'right' }}>
-                        if classified normal, it is placed on the right.
+                        If it is classified as normal it is placed on the right.
                       </div>
                     </div>
                     <div>
-                      The color reveals its true status. Over time the density
-                      and position of the colors in each strategy visualization
-                      give you a feel for the different models strengths and
-                      weaknesses.
+                      The{' '}
+                      <span className="animate">
+                        color reveals its true status
+                      </span>
+                      . Over time the density and position of the colors in each
+                      strategy visualization give you a feel for the different
+                      models strengths and weaknesses.
                     </div>
                   </div>
                   <div style={{ marginBottom: rlh / 2 }}>
@@ -1545,6 +1609,21 @@ export default function Index() {
           padding: 0;
           margin: 0;
           cursor: pointer;
+        }
+        .animate {
+          padding-left: 0.5ch;
+          padding-right: 0.5ch;
+          color: white;
+          animation: pulse 4s infinite alternate;
+        }
+
+        @keyframes pulse {
+          0% {
+            background-color: ${scheme.bg};
+          }
+          100% {
+            background-color: ${red};
+          }
         }
       `}</style>
     </div>
