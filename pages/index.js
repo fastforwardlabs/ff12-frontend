@@ -39,6 +39,12 @@ let cell = { w: ch, h: rlh / 2 }
 let speeds = [640 * 2, 640, 320, 80, 40, 20]
 
 let names = ['PCA', 'OCSVM', 'Autoencoder', 'BiGAN']
+let long_names = [
+  'Principal Component Analysis',
+  'One Class Support Vector Machine',
+  'Autoencoder',
+  'Bidirectional GAN',
+]
 
 let name_max = names.reduce((t, c) => {
   return Math.max(c.length, t)
@@ -1187,7 +1193,7 @@ export default function Index() {
                   </div>
                   <div style={{ marginBottom: rlh / 2 }}>
                     Blip shows how four different algorithms (
-                    {names.map((n, i) => (
+                    {long_names.map((n, i) => (
                       <span>
                         <span
                           style={{
@@ -1206,10 +1212,13 @@ export default function Index() {
                       KDD network intrusion dataset
                     </a>
                     . You can read about how each model was trained in the{' '}
-                    <a href="#">protototype section of our report</a>.
+                    <a href="https://ff12.fastforwardlabs.com/#prototype">
+                      protototype section of our report
+                    </a>
+                    .
                   </div>
                   <div style={{ marginBottom: rlh / 2 }}>
-                    The top CONNECTIONS section shows the{' '}
+                    The CONNECTIONS section shows the{' '}
                     <span
                       style={{
                         paddingLeft: '0.5ch',
@@ -1221,8 +1230,8 @@ export default function Index() {
                       network connections
                     </span>{' '}
                     coming in, with the features used by each model for their
-                    prediction. The color of the square shows the true status of
-                    whether the connection is an{' '}
+                    prediction. The color of the square shows whether the
+                    connection is an{' '}
                     <span
                       style={{
                         background: red,
@@ -1247,18 +1256,31 @@ export default function Index() {
                   </div>
                   <div style={{ marginBottom: rlh / 2 }}>
                     The STRATEGIES section shows metrics on how each algorithm
-                    is peforming on the incoming data. You can see the accuracy,
-                    recall, and precision metrics for each strategy.
+                    is performing on the incoming data. You can see the
+                    accuracy, recall, and precision metrics for each strategy.
                   </div>
                   <div style={{ marginBottom: rlh / 2 }}>
-                    The VISUALIZED section provides another view of each
-                    strategy's performance. Each connection is visualized as a
-                    square. If it is classified as an attack it is placed on the
-                    left; if classified normal, it is placed on the right. The
-                    color reveals its true status. Over time, the density and
-                    position of the colors in each strategy visualization give
-                    you a feel for the different models' strengths and
-                    weaknesses.
+                    <div>
+                      The VISUALIZED section provides another view of each
+                      strategy's performance. Each connection is visualized as a
+                      square.
+                    </div>
+                    <div style={{ display: 'flex' }}>
+                      <div style={{ width: '50%' }}>
+                        If it is classified as an attack it is placed on the
+                        left
+                      </div>
+
+                      <div style={{ width: '50%', textAlign: 'right' }}>
+                        if classified normal, it is placed on the right.
+                      </div>
+                    </div>
+                    <div>
+                      The color reveals its true status. Over time the density
+                      and position of the colors in each strategy visualization
+                      give you a feel for the different models strengths and
+                      weaknesses.
+                    </div>
                   </div>
                   <div style={{ marginBottom: rlh / 2 }}>
                     The simulation will run through 10,000 connections before
