@@ -1215,7 +1215,7 @@ export default function Index() {
                     </a>
                     . You can read about how each model was trained in the{' '}
                     <a href="https://ff12.fastforwardlabs.com/#prototype">
-                      protototype section of our report
+                      prototype section of our report
                     </a>
                     .
                   </div>
